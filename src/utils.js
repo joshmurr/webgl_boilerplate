@@ -44,3 +44,34 @@ export function loadTexture(gl, url) {
 function isPowerOf2(value) {
     return (value & (value - 1)) == 0;
 }
+
+export function generateUID(){
+    let text = '';
+    let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 15; i++){
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    localStorage.setItem('UID', text);
+    return text;
+}
+
+export function createOverlay(){
+    const container = document.createElement('div');
+    container.classList.add("overlay");
+
+    const text = document.createElement('P');
+    text.innerHTML = `<h2>Getting to Know WebGL</h2>
+                      <br>Generating icospheres and disturbing the vertices with Perlin noise.
+                      <br><br>Mouse + WASD - Move
+                      <br>Scroll - Change FOV`;
+    container.appendChild(text);
+
+    const code = document.createElement('a');
+    code.text = "Code";
+    code.href = "https://github.com/joshmurr/webgl_environment_test";
+
+    container.appendChild(code);
+
+    const body = document.getElementsByTagName("body")[0];
+    body.appendChild(container);
+}

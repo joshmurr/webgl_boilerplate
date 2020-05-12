@@ -12,14 +12,12 @@ window.onload = function main() {
     GL.init(512,512);
     GL.initShaderProgram('testProgram', vertShader, fragShader);
     GL.initShaderProgram('points', pointsVert, pointsFrag);
-    GL.initGlobalUniforms('points');
-    GL.initBasicScene();
+    GL.initBasicScene('testProgram');
 
     const icosahedron = new Icosahedron(GL.gl);
-    icosahedron.init(GL.programs['points']);
+    icosahedron.init(GL.programs['testProgram']);
 
     GL.addMesh(icosahedron);
-
 
     GL.canvas.onmousemove = function(e) {
         const x = 2.0 * (e.pageX - this.offsetLeft)/this.width - 1.0;
@@ -27,7 +25,7 @@ window.onload = function main() {
     };
 
     function draw(now) {
-        GL.draw(now);
+        GL.draw(now, 'testProgram');
         window.requestAnimationFrame(draw);
     }
     window.requestAnimationFrame(draw);
