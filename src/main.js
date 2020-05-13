@@ -1,8 +1,9 @@
 import GL_BP from './GL_BP';
-import { Icosahedron } from './icosahedron.js';
+// import Geometry from './geometry.js';
+import Icosahedron from './icosahedron.js';
 import './styles.css';
-var vertShader = require('./glsl/vert.glsl');
-var fragShader = require('./glsl/frag.glsl');
+var facesVert = require('./glsl/facesVert.glsl');
+var facesFrag = require('./glsl/facesFrag.glsl');
 var pointsVert = require('./glsl/pointsVert.glsl');
 var pointsFrag = require('./glsl/pointsFrag.glsl');
 
@@ -10,12 +11,14 @@ window.onload = function main() {
     const GL = new GL_BP();
     // Create canvas of specified size and setup WebGL instance
     GL.init(512,512);
-    GL.initShaderProgram('testProgram', vertShader, fragShader);
+    GL.initShaderProgram('faces', facesVert, facesFrag);
     GL.initShaderProgram('points', pointsVert, pointsFrag);
-    GL.initBasicScene('testProgram');
+    GL.initBasicScene('faces');
 
     const icosahedron = new Icosahedron(GL.gl);
-    icosahedron.init(GL.programs['testProgram']);
+    icosahedron.init(GL.programs['faces']);
+    icosahedron.translate = [0, 0, -10];
+    icosahedron.rotate = { s:0.001, r:[1, 1, 1]};
 
     GL.addMesh(icosahedron);
 
@@ -25,7 +28,7 @@ window.onload = function main() {
     };
 
     function draw(now) {
-        GL.draw(now, 'testProgram');
+        GL.draw(now, 'faces');
         window.requestAnimationFrame(draw);
     }
     window.requestAnimationFrame(draw);

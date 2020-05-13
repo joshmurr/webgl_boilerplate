@@ -4,6 +4,8 @@ export default class GL_BP {
     constructor(){
         this._programs = {};
         this._meshes = [];
+        this._time = 0.0;
+        this._oldTimestamp = 0.0;
     }
 
     get programs(){
@@ -105,7 +107,18 @@ export default class GL_BP {
     }
 
     draw(now, _program){
-        this._time = 5 + now * 0.0001;
+        // this._time = 5 + now * 0.0001;
+        let deltaTime = 0.0;
+        if (this._oldTimestamp != 0) {
+            deltaTime = now - this._oldTimestamp;
+            if (deltaTime > 500.0) {
+                deltaTime = 0.0;
+            }
+        }
+        this._oldTimestamp = now;
+        this._time += deltaTime;
+
+        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
         this.gl.clearColor(0.95, 0.95, 0.95, 1.0);
         this.gl.clearDepth(1.0);
@@ -130,11 +143,7 @@ export default class GL_BP {
         for(const mesh of this._meshes){
             this.gl.bindVertexArray(mesh.VAO);
 
-            mat4.rotate(mesh.uniforms.u_ModelMatrix.matrix,
-                        mesh.uniforms.u_ModelMatrix.matrix,
-                        this._time * 0.002,
-                        [0, 1, 0]
-            );
+            mesh.updateModelMatrix(this._time);
 
             this.gl.uniformMatrix4fv(
                 mesh.uniforms.u_ModelMatrix.location,
@@ -144,6 +153,11 @@ export default class GL_BP {
 
             this.gl.drawElements(this.gl.TRIANGLES, mesh.numIndices, this.gl.UNSIGNED_SHORT, 0);
         }
+
+        // Empty Buffers
+        this.gl.bindVertexArray(null);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
 
     randomData(DIMS){
