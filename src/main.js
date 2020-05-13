@@ -15,12 +15,24 @@ window.onload = function main() {
     GL.initShaderProgram('points', pointsVert, pointsFrag);
     GL.initBasicScene('faces');
 
-    const icosahedron = new Icosahedron(GL.gl);
-    icosahedron.init(GL.programs['faces']);
-    icosahedron.translate = [0, 0, -10];
-    icosahedron.rotate = { s:0.001, r:[1, 1, 1]};
+    const i1 = new Icosahedron(GL.gl);
+    i1.init(GL.programs['faces']);
+    i1.translate = [0, 0, -10];
+    i1.rotate = { s:0.001, r:[0, 1, 0]};
 
-    GL.addMesh(icosahedron);
+    const i2 = new Icosahedron(GL.gl);
+    i2.init(GL.programs['faces']);
+    i2.translate = [2, 0, -10];
+    i2.rotate = { s:0.005, r:[0, 0, 1]};
+
+    const i3 = new Icosahedron(GL.gl);
+    i3.init(GL.programs['faces']);
+    i3.translate = [-2, 0, -10];
+    i3.rotate = { s:0.002, r:[1, 0, 0]};
+
+    GL.addMesh(i1);
+    GL.addMesh(i2);
+    GL.addMesh(i3);
 
     GL.canvas.onmousemove = function(e) {
         const x = 2.0 * (e.pageX - this.offsetLeft)/this.width - 1.0;
