@@ -16,5 +16,5 @@ void main(){
     v_Color = i_Color;
     v_Normal = i_Normal;
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_ModelMatrix * vec4(i_Position, 1.0);
-    gl_PointSize = (gl_Position.w * -1.0) + 10.0;
+    gl_PointSize = (gl_Position.w * -1.0) + 18.0;
 }

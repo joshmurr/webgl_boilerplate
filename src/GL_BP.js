@@ -29,7 +29,7 @@ export default class GL_BP {
         }
     }
 
-    initShaderProgram(name, vsSource, fsSource) {
+    initShaderProgram(name, vsSource, fsSource, _mode) {
         const shaderProgram = this.gl.createProgram();
         const vertexShader = this.loadShader(this.gl.VERTEX_SHADER, vsSource);
         const fragmentShader = this.loadShader(this.gl.FRAGMENT_SHADER, fsSource);
@@ -43,7 +43,12 @@ export default class GL_BP {
             return null;
         }
 
-        this._programs[name] = shaderProgram;
+        this._programs[name] = {
+            shader   : shaderProgram,
+            mode     : this.gl[_mode],
+            geometry : [],
+        }
+
     }
 
     loadShader(type, source) {
@@ -61,7 +66,7 @@ export default class GL_BP {
 
     initTransformFeedbackVarying(programName, transformFeedbackVaryings){
         gl.transformFeedbackVaryings(
-            this._programs[programName],
+            this._programs[programName].shader,
             transformFeedbackVaryings,
             gl.INTERLEAVED_ATTRIBS)
     }
@@ -81,16 +86,16 @@ export default class GL_BP {
         const up = vec3.fromValues(0, 1, 0);
         mat4.lookAt(this._viewMat, position, target, up);
 
-        this._globalUniforms = {
+        this._programs[_program].globalUniforms = {
             u_ProjectionMatrix : {
                 type    : 'uniformMatrix4fv',
                 value   : this._perspectiveMat,
-                location: this.gl.getUniformLocation(this._programs[_program], 'u_ProjectionMatrix')
+                location: this.gl.getUniformLocation(this._programs[_program].shader, 'u_ProjectionMatrix')
             },
             u_ViewMatrix : {
                 type    : 'uniformMatrix4fv',
                 value   : this._viewMat,
-                location: this.gl.getUniformLocation(this._programs[_program], 'u_ViewMatrix')
+                location: this.gl.getUniformLocation(this._programs[_program].shader, 'u_ViewMatrix')
             },
         };
     }
@@ -107,8 +112,12 @@ export default class GL_BP {
             // },
         // };
     // }
+    linkProgram(_program, _geometry){
+        this._programs[_program].geometry.push(_geometry);
+        _geometry.linkProgram(this._programs[_program].shader);
+    }
 
-    draw(now, _program){
+    draw(now){
         // this._time = 5 + now * 0.0001;
         let deltaTime = 0.0;
         if (this._oldTimestamp != 0) {
@@ -129,29 +138,47 @@ export default class GL_BP {
         this.gl.enable(this.gl.CULL_FACE);
         this.gl.enable(this.gl.DEPTH_TEST);
 
-        this.gl.useProgram(this._programs[_program]);
+        /* FOR PROGRAMS IN _PROGAMS */
+        for(const program in this._programs){
+            if(this._programs.hasOwnProperty(program)){
+                const program_desc = this._programs[program];
+                if(program_desc.geometry.length < 1) return;
 
-        this.setGloablUniforms();
+                this.gl.useProgram(program_desc.shader);
 
-        for(const mesh of this._meshes){
-            this.gl.bindVertexArray(mesh.VAO);
+                this.setGlobalUniforms(program_desc.globalUniforms);
 
-            mesh.updateModelMatrix(this._time);
-            mesh.setUniforms();
+                for(const geom of program_desc.geometry){
+                    this.gl.bindVertexArray(geom.VAO);
 
-            this.gl.drawElements(this.gl.TRIANGLES, mesh.numIndices, this.gl.UNSIGNED_SHORT, 0);
+                    geom.updateModelMatrix(this._time);
+                    geom.setUniforms();
+
+                    switch(program_desc.mode){ 
+                        case 0 : {
+                            this.gl.drawArrays(program_desc.mode, 0, geom.numVertices/3);
+                            break;
+                        } 
+                        default : {
+                            this.gl.drawElements(program_desc.mode, geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
+                        }
+                    }
+
+                }
+
+                // Empty Buffers
+                this.gl.bindVertexArray(null);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+                this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
+            }
         }
-
-        // Empty Buffers
-        this.gl.bindVertexArray(null);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
-        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
+        /* END PROGRAMS IN _PROGAMS */
     }
 
-    setGloablUniforms(){
-        for(const uniform in this._globalUniforms){
-            if(this._globalUniforms.hasOwnProperty(uniform)){
-                const uniform_desc = this._globalUniforms[uniform];
+    setGlobalUniforms(_uniforms){
+        for(const uniform in _uniforms){
+            if(_uniforms.hasOwnProperty(uniform)){
+                const uniform_desc = _uniforms[uniform];
                 this.gl[uniform_desc.type](
                     uniform_desc.location,
                     false,

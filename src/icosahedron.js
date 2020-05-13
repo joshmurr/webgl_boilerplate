@@ -64,7 +64,7 @@ export default class Icosahedron extends Geometry {
         }
     }
 
-    init(_program){
+    linkProgram(_program){
         const attributes = {
             i_Position: {
                 buffer: this.gl.createBuffer(),
