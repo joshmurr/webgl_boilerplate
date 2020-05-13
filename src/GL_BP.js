@@ -81,7 +81,7 @@ export default class GL_BP {
         mat4.perspective(this._perspectiveMat, fieldOfView, aspect, zNear, zFar);
 
         this._viewMat = mat4.create();
-        const position = vec3.fromValues(0, 0.3, 3);
+        const position = vec3.fromValues(0, 0.5, 5);
         const target = vec3.fromValues(0, 0, 0);
         const up = vec3.fromValues(0, 1, 0);
         mat4.lookAt(this._viewMat, position, target, up);
@@ -138,11 +138,11 @@ export default class GL_BP {
         this.gl.enable(this.gl.CULL_FACE);
         this.gl.enable(this.gl.DEPTH_TEST);
 
-        /* FOR PROGRAMS IN _PROGAMS */
         for(const program in this._programs){
             if(this._programs.hasOwnProperty(program)){
                 const program_desc = this._programs[program];
-                if(program_desc.geometry.length < 1) return;
+
+                if(program_desc.geometry.length < 1) continue;
 
                 this.gl.useProgram(program_desc.shader);
 
