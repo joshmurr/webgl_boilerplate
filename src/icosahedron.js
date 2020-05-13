@@ -63,4 +63,53 @@ export default class Icosahedron extends Geometry {
             this._colors.push(R, G, B, 1.0);
         }
     }
+
+    init(_program){
+        const attributes = {
+            i_Position: {
+                buffer: this.gl.createBuffer(),
+                bufferData: new Float32Array(this._verts),
+                usage: this.gl.STATIC_DRAW,
+                location: this.gl.getAttribLocation(_program, "i_Position"),
+                num_components: 3,
+                type: this.gl.FLOAT,
+                normalize: false,
+                stride: 0,
+                offset: 0,
+            },
+            i_Normal: {
+                buffer: this.gl.createBuffer(),
+                bufferData: new Float32Array(this._normals),
+                usage: this.gl.STATIC_DRAW,
+                location: this.gl.getAttribLocation(_program, "i_Normal"),
+                num_components: 3,
+                type: this.gl.FLOAT,
+                normalize: false,
+                stride: 0,
+                offset: 0,
+            },
+            i_Color: {
+                buffer: this.gl.createBuffer(),
+                bufferData: new Float32Array(this._colors),
+                usage: this.gl.STATIC_DRAW,
+                location: this.gl.getAttribLocation(_program, "i_Color"),
+                num_components: 3,
+                type: this.gl.FLOAT,
+                normalize: false,
+                stride: 0,
+                offset: 0,
+            },
+        };
+
+        this._VAO = this.gl.createVertexArray();
+        this.setupVAO(attributes);
+
+        this._uniforms = {
+            u_ModelMatrix : {
+                value    : mat4.create(),
+                type     : 'uniformMatrix4fv',
+                location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
+            },
+        }
+    }
 }

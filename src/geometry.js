@@ -14,53 +14,6 @@ export default class Geometry {
         this._colors = [];
     }
 
-    init(_program){
-        const attributes = {
-            i_Position: {
-                buffer: this.gl.createBuffer(),
-                bufferData: new Float32Array(this._verts),
-                usage: this.gl.STATIC_DRAW,
-                location: this.gl.getAttribLocation(_program, "i_Position"),
-                num_components: 3,
-                type: this.gl.FLOAT,
-                normalize: false,
-                stride: 0,
-                offset: 0,
-            },
-            i_Normal: {
-                buffer: this.gl.createBuffer(),
-                bufferData: new Float32Array(this._normals),
-                usage: this.gl.STATIC_DRAW,
-                location: this.gl.getAttribLocation(_program, "i_Normal"),
-                num_components: 3,
-                type: this.gl.FLOAT,
-                normalize: false,
-                stride: 0,
-                offset: 0,
-            },
-            i_Color: {
-                buffer: this.gl.createBuffer(),
-                bufferData: new Float32Array(this._colors),
-                usage: this.gl.STATIC_DRAW,
-                location: this.gl.getAttribLocation(_program, "i_Color"),
-                num_components: 3,
-                type: this.gl.FLOAT,
-                normalize: false,
-                stride: 0,
-                offset: 0,
-            },
-        };
-
-        this._VAO = this.gl.createVertexArray();
-        this.setupVAO(attributes);
-
-        this._uniforms = {
-            u_ModelMatrix : {
-                matrix : mat4.create(),
-                location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
-            },
-        }
-    }
 
     setupVAO(_attributes){
         this.gl.bindVertexArray(this._VAO);
@@ -95,6 +48,19 @@ export default class Geometry {
         this.gl.bindVertexArray(null);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
+    }
+
+    setUniforms(){
+        for(const uniform in this._uniforms){
+            if(this._uniforms.hasOwnProperty(uniform)){
+                const uniform_desc = this._uniforms[uniform];
+                this.gl[uniform_desc.type](
+                    uniform_desc.location,
+                    false,
+                    uniform_desc.value,
+                );
+            }
+        }
     }
 
     get VAO(){
@@ -133,13 +99,13 @@ export default class Geometry {
     }
 
     updateModelMatrix(_time){
-        mat4.identity(this._uniforms.u_ModelMatrix.matrix);
-        mat4.translate(this._uniforms.u_ModelMatrix.matrix,
-                       this._uniforms.u_ModelMatrix.matrix,
+        mat4.identity(this._uniforms.u_ModelMatrix.value);
+        mat4.translate(this._uniforms.u_ModelMatrix.value,
+                       this._uniforms.u_ModelMatrix.value,
                        this._translate
         );
-        mat4.rotate(this._uniforms.u_ModelMatrix.matrix,
-                    this._uniforms.u_ModelMatrix.matrix,
+        mat4.rotate(this._uniforms.u_ModelMatrix.value,
+                    this._uniforms.u_ModelMatrix.value,
                     _time * this._rotation.speed,
                     this._rotation.axis
         );

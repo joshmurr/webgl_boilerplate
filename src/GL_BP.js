@@ -83,28 +83,30 @@ export default class GL_BP {
 
         this._globalUniforms = {
             u_ProjectionMatrix : {
-                matrix : this._perspectiveMat,
+                type    : 'uniformMatrix4fv',
+                value   : this._perspectiveMat,
                 location: this.gl.getUniformLocation(this._programs[_program], 'u_ProjectionMatrix')
             },
             u_ViewMatrix : {
-                matrix : this._viewMat,
+                type    : 'uniformMatrix4fv',
+                value   : this._viewMat,
                 location: this.gl.getUniformLocation(this._programs[_program], 'u_ViewMatrix')
             },
         };
     }
 
-    initGlobalUniforms(_program){
-        this._globalUniforms = {
-            u_ProjectionMatrix : {
-                matrix : this._perspectiveMat,
-                location: this.gl.getUniformLocation(this._programs[_program], 'u_ProjectionMatrix')
-            },
-            u_ViewMatrix : {
-                matrix : this._viewMat,
-                location: this.gl.getUniformLocation(this._programs[_program], 'u_ViewMatrix')
-            },
-        };
-    }
+    // initGlobalUniforms(_program){
+        // this._globalUniforms = {
+            // u_ProjectionMatrix : {
+                // matrix : this._perspectiveMat,
+                // location: this.gl.getUniformLocation(this._programs[_program], 'u_ProjectionMatrix')
+            // },
+            // u_ViewMatrix : {
+                // matrix : this._viewMat,
+                // location: this.gl.getUniformLocation(this._programs[_program], 'u_ViewMatrix')
+            // },
+        // };
+    // }
 
     draw(now, _program){
         // this._time = 5 + now * 0.0001;
@@ -129,27 +131,13 @@ export default class GL_BP {
 
         this.gl.useProgram(this._programs[_program]);
 
-        this.gl.uniformMatrix4fv(
-            this._globalUniforms.u_ProjectionMatrix.location,
-            false,
-            this._globalUniforms.u_ProjectionMatrix.matrix
-        );
-        this.gl.uniformMatrix4fv(
-            this._globalUniforms.u_ViewMatrix.location,
-            false,
-            this._globalUniforms.u_ViewMatrix.matrix
-        );
+        this.setGloablUniforms();
 
         for(const mesh of this._meshes){
             this.gl.bindVertexArray(mesh.VAO);
 
             mesh.updateModelMatrix(this._time);
-
-            this.gl.uniformMatrix4fv(
-                mesh.uniforms.u_ModelMatrix.location,
-                false,
-                mesh.uniforms.u_ModelMatrix.matrix
-            );
+            mesh.setUniforms();
 
             this.gl.drawElements(this.gl.TRIANGLES, mesh.numIndices, this.gl.UNSIGNED_SHORT, 0);
         }
@@ -158,6 +146,19 @@ export default class GL_BP {
         this.gl.bindVertexArray(null);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
+    }
+
+    setGloablUniforms(){
+        for(const uniform in this._globalUniforms){
+            if(this._globalUniforms.hasOwnProperty(uniform)){
+                const uniform_desc = this._globalUniforms[uniform];
+                this.gl[uniform_desc.type](
+                    uniform_desc.location,
+                    false,
+                    uniform_desc.value,
+                );
+            }
+        }
     }
 
     randomData(DIMS){
