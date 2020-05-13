@@ -43,4 +43,5 @@ export default class RandomPointSphere extends Geometry {
             },
         }
     }
+
 }

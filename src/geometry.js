@@ -110,4 +110,17 @@ export default class Geometry {
                     this._rotation.axis
         );
     }
+    normalizeVerts(){
+        for(let i=0; i<this._verts.length; i+=3) {
+            const norm = this.normalize(this._verts[i], this._verts[i+1], this._verts[i+2]);
+            this._verts[i] = norm[0];
+            this._verts[i+1] = norm[1];
+            this._verts[i+2] = norm[2];
+        }
+    }
+
+    normalize(a, b, c){
+        const len = Math.sqrt(a*a + b*b + c*c);
+        return [a/len, b/len, c/len];
+    }
 }

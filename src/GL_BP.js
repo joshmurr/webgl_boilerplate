@@ -48,7 +48,6 @@ export default class GL_BP {
             mode     : this.gl[_mode],
             geometry : [],
         }
-
     }
 
     loadShader(type, source) {
@@ -156,7 +155,18 @@ export default class GL_BP {
 
                     switch(program_desc.mode){ 
                         case 0 : {
+                            // POINTS
                             this.gl.drawArrays(program_desc.mode, 0, geom.numVertices/3);
+                            break;
+                        } 
+                        case 1 : {
+                            // LINES
+                            this.gl.drawElements(program_desc.mode, geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
+                            break;
+                        } 
+                        case 2 : {
+                            // LINE_LOOP
+                            this.gl.drawElements(program_desc.mode, geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
                             break;
                         } 
                         default : {
