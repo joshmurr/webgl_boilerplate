@@ -21,7 +21,7 @@ window.onload = function main() {
     GL.initBasicScene('points');
     GL.initBasicScene('lines');
 
-    const rSphere = new RandomPointSphere(GL.gl, 1000);
+    const rSphere = new RandomPointSphere(GL.gl, 100000);
     GL.linkProgram('points', rSphere);
     rSphere.rotate = { s:0.001, r:[1, 1, 0]};
 
