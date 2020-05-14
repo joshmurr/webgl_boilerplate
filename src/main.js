@@ -23,11 +23,23 @@ window.onload = function main() {
 
     GL.updateGlobalUniforms();
     GL.cameraPosition = [0, 0, 5];
+    // GL.testTexture('texture');
+    const texOptions = {
+        program : 'texture',
+        width : 2,
+        height : 2,
+        data : new Uint8Array([
+            0, 0, 255, 255,
+            255, 0, 0, 255,
+            255, 0, 0, 255,
+            0, 0, 255, 255,
+        ]),
+    };
+    GL.texture(texOptions);
 
     const quad = new Quad(GL.gl);
     // GL.linkProgram('debug', quad);
 
-    GL.testTexture('texture');
     const uCube = new Cube(GL.gl, 'SOLID');
     GL.linkProgram('texture', uCube);
     uCube.rotate = { s:0.001, r:[1, 1, 0]};

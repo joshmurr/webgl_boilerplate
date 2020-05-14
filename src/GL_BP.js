@@ -202,18 +202,56 @@ export default class GL_BP {
         }
     }
 
-    texture(format, wrap, filter, type){
+    texture(_options){
+        // Default options, to be overwritten by _options passed in
+        let options = {
+            program : null,
+            level : 0,
+            width : 1,
+            height : 1,
+            data : null,
+            border : 0,
+            internalFormat : 'RGBA8',
+            format : 'RGBA',
+            wrap : 'CLAMP_TO_EDGE',
+            filter : 'NEAREST',
+            type : 'UNSIGNED_BYTE'
+        }
+
+        Object.assign(options, _options);
+        // Make some data if none exists
+        if(options.data == null){
+            options.width = 1;
+            options.height = 1;
+            options.data = new Uint8Array([0,0,255,255]);
+        }
+
         const texture = this.gl.createTexture();
+
+
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
-        wrap = wrap == null ? gl.CLAMP_TO_EDGE : wrap;
-        filter = filter == null ? gl.LINEAR : filter;
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
-        format = format == null ? gl.RGBA : format;
-        type = type == null ? gl.UNSIGNED_BYTE : type;
+        this.gl.texImage2D(this.gl.TEXTURE_2D,
+            0, // Level
+            this.gl[options.internalFormat],
+            options.width,
+            options.height,
+            options.border,
+            this.gl[options.format],
+            this.gl[options.type],
+            options.data
+        );
+
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl[options.wrap]);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl[options.wrap]);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl[options.filter]);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
+
+        this._programs[options.program].globalUniforms['u_Texture'] = {
+            type     : 'uniform1i',
+            value    : texture,
+            location : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
+        }
     }
 
     testTexture(_program){
@@ -233,6 +271,7 @@ export default class GL_BP {
             128,  64, 128,
             0, 192,   0,
         ]);
+        // if(width < 4 || height < 4)
         this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
         this.gl.texImage2D(this.gl.TEXTURE_2D, level, internalFormat, width, height, border,
             format, type, data);
