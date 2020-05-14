@@ -10,31 +10,26 @@ var pointsVert = require('./glsl/pointsVert.glsl');
 var pointsFrag = require('./glsl/pointsFrag.glsl');
 var basicFrag = require('./glsl/basicFrag.glsl');
 
+var textureVert = require('./glsl/textureVert.glsl');
+var textureFrag = require('./glsl/textureFrag.glsl');
+
 window.onload = function main() {
     const GL = new GL_BP();
     // Create canvas of specified size and setup WebGL instance
     GL.init(512,512);
-    // GL.initShaderProgram('faces', facesVert, facesFrag, 'TRIANGLES');
-    // GL.initShaderProgram('points', pointsVert, pointsFrag, 'POINTS');
     GL.initShaderProgram('lines', pointsVert, basicFrag, 'LINES');
     GL.initShaderProgram('debug', pointsVert, basicFrag, 'TRIANGLE_STRIP');
+    GL.initShaderProgram('texture', textureVert, textureFrag, 'TRIANGLES');
 
-
-    // Init scene for all programs so they receive the same 'global' uniforms
-    // GL.initBasicScene('faces');
-    // GL.initBasicScene('points');
     GL.updateGlobalUniforms();
-
     GL.cameraPosition = [0, 0, 5];
-    // const rSphere = new RandomPointSphere(GL.gl, 10000);
-    // GL.linkProgram('points', rSphere);
-    // rSphere.rotate = { s:0.001, r:[1, 1, 0]};
-    //
+
     const quad = new Quad(GL.gl);
     // GL.linkProgram('debug', quad);
 
-    const uCube = new Cube(GL.gl, 'DEBUG');
-    GL.linkProgram('lines', uCube);
+    GL.testTexture('texture');
+    const uCube = new Cube(GL.gl, 'SOLID');
+    GL.linkProgram('texture', uCube);
     uCube.rotate = { s:0.001, r:[1, 1, 0]};
 
     function draw(now) {
