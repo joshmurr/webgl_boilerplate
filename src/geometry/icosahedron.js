@@ -1,6 +1,6 @@
 import { mat4 } from "gl-matrix";
 import Geometry from "./geometry.js";
-import { HSVtoRGB } from "./utils.js";
+import { HSVtoRGB } from "../utils.js";
 
 export default class Icosahedron extends Geometry {
     constructor(gl){

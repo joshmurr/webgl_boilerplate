@@ -6,11 +6,20 @@ export default class GL_BP {
         this._meshes = [];
         this._time = 0.0;
         this._oldTimestamp = 0.0;
+
+        // Projection
+        this._fieldOfView = 45 * Math.PI / 180;
+        this._aspect = 1; // Default, to be changed on init
+        this._zNear = 0.1;
+        this._zFar = 100.0;
+        this._projectionMat = mat4.create();
+        // View
+        this._viewMat = mat4.create();
+        this._position = vec3.fromValues(0, 0.5, 5);
+        this._target = vec3.fromValues(0, 0, 0);
+        this._up = vec3.fromValues(0, 1, 0);
     }
 
-    get programs(){
-        return this._programs;
-    }
 
     addMesh(_mesh){
         this._meshes.push(_mesh);
@@ -47,6 +56,19 @@ export default class GL_BP {
             shader   : shaderProgram,
             mode     : this.gl[_mode],
             geometry : [],
+            globalUniforms : {
+                u_ProjectionMatrix : {
+                    type    : 'uniformMatrix4fv',
+                    value   : this._projectionMat,
+                    location: this.gl.getUniformLocation(shaderProgram, 'u_ProjectionMatrix')
+                },
+                u_ViewMatrix : {
+                    type    : 'uniformMatrix4fv',
+                    value   : this._viewMat,
+                    location: this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
+                },
+            }
+
         }
     }
 
@@ -70,50 +92,46 @@ export default class GL_BP {
             gl.INTERLEAVED_ATTRIBS)
     }
 
-
-    initBasicScene(_program){
-        const fieldOfView = 45 * Math.PI / 180;
-        const aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
-        const zNear = 0.1;
-        const zFar = 100.0;
-        this._perspectiveMat = mat4.create();
-        mat4.perspective(this._perspectiveMat, fieldOfView, aspect, zNear, zFar);
-
-        this._viewMat = mat4.create();
-        const position = vec3.fromValues(0, 0.5, 5);
-        const target = vec3.fromValues(0, 0, 0);
-        const up = vec3.fromValues(0, 1, 0);
-        mat4.lookAt(this._viewMat, position, target, up);
-
-        this._programs[_program].globalUniforms = {
-            u_ProjectionMatrix : {
-                type    : 'uniformMatrix4fv',
-                value   : this._perspectiveMat,
-                location: this.gl.getUniformLocation(this._programs[_program].shader, 'u_ProjectionMatrix')
-            },
-            u_ViewMatrix : {
-                type    : 'uniformMatrix4fv',
-                value   : this._viewMat,
-                location: this.gl.getUniformLocation(this._programs[_program].shader, 'u_ViewMatrix')
-            },
-        };
+    updateGlobalUniforms(){
+        for(const program in this._programs){
+            if(this._programs.hasOwnProperty(program)){
+                this.updateProjectionMatrix(program);
+                this.updateViewMatrix(program);
+            }
+        }
     }
 
-    // initGlobalUniforms(_program){
-        // this._globalUniforms = {
-            // u_ProjectionMatrix : {
-                // matrix : this._perspectiveMat,
-                // location: this.gl.getUniformLocation(this._programs[_program], 'u_ProjectionMatrix')
-            // },
-            // u_ViewMatrix : {
-                // matrix : this._viewMat,
-                // location: this.gl.getUniformLocation(this._programs[_program], 'u_ViewMatrix')
-            // },
-        // };
-    // }
+    updateProjectionMatrix(_program){
+        this._aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
+        this._projectionMat = mat4.create();
+        mat4.perspective(
+            this._programs[_program].globalUniforms.u_ProjectionMatrix.value,
+            this._fieldOfView, this._aspect, this._zNear, this._zFar);
+    }
+
+    updateViewMatrix(_program){
+        this._viewMat = mat4.create();
+        mat4.lookAt(
+            this._programs[_program].globalUniforms.u_ViewMatrix.value,
+            this._position, this._target, this._up);
+    }
+
     linkProgram(_program, _geometry){
         this._programs[_program].geometry.push(_geometry);
         _geometry.linkProgram(this._programs[_program].shader);
+    }
+
+    setGlobalUniforms(_uniforms){
+        for(const uniform in _uniforms){
+            if(_uniforms.hasOwnProperty(uniform)){
+                const uniform_desc = _uniforms[uniform];
+                this.gl[uniform_desc.type](
+                    uniform_desc.location,
+                    false,
+                    uniform_desc.value,
+                );
+            }
+        }
     }
 
     draw(now){
@@ -159,13 +177,12 @@ export default class GL_BP {
                             this.gl.drawArrays(program_desc.mode, 0, geom.numVertices/3);
                             break;
                         } 
-                        case 1 : {
+                        case 1 :
                             // LINES
-                            this.gl.drawElements(program_desc.mode, geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
-                            break;
-                        } 
-                        case 2 : {
+                        case 2 : 
                             // LINE_LOOP
+                        case 5 : {
+                            // TRIANGLE_STRIP
                             this.gl.drawElements(program_desc.mode, geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
                             break;
                         } 
@@ -182,21 +199,8 @@ export default class GL_BP {
                 this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
             }
         }
-        /* END PROGRAMS IN _PROGAMS */
     }
 
-    setGlobalUniforms(_uniforms){
-        for(const uniform in _uniforms){
-            if(_uniforms.hasOwnProperty(uniform)){
-                const uniform_desc = _uniforms[uniform];
-                this.gl[uniform_desc.type](
-                    uniform_desc.location,
-                    false,
-                    uniform_desc.value,
-                );
-            }
-        }
-    }
 
     randomData(DIMS){
         let d = [];
@@ -208,5 +212,22 @@ export default class GL_BP {
             d.push(Math.random()*255.0);
         }
         return new Uint8Array(d);
+    }
+    // GETTERS - SETTERS
+    get programs(){
+        return this._programs;
+    }
+
+    set cameraPosition(loc){
+        this._position = vec3.fromValues(...loc);
+        this.updateGlobalUniforms();
+    }
+
+    set cameraTarget(loc){
+        this._target = vec3.fromValues(...loc);
+    }
+
+    set FOV(val){
+        this._fieldOfView = val * Math.PI/180;
     }
 }
