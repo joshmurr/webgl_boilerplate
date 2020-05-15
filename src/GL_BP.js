@@ -3,7 +3,6 @@ import { mat4, vec3 } from 'gl-matrix';
 export default class GL_BP {
     constructor(){
         this._programs = {};
-        this._textures = {};
         this._time = 0.0;
         this._oldTimestamp = 0.0;
 
@@ -54,14 +53,16 @@ export default class GL_BP {
             geometry : [],
             globalUniforms : {
                 u_ProjectionMatrix : {
-                    type    : 'uniformMatrix4fv',
-                    value   : this._projectionMat,
-                    location: this.gl.getUniformLocation(shaderProgram, 'u_ProjectionMatrix')
+                    type        : 'mat4',
+                    uniformType : 'uniformMatrix4fv',
+                    value       : this._projectionMat,
+                    location    : this.gl.getUniformLocation(shaderProgram, 'u_ProjectionMatrix')
                 },
                 u_ViewMatrix : {
-                    type    : 'uniformMatrix4fv',
-                    value   : this._viewMat,
-                    location: this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
+                    type        : 'mat4',
+                    uniformType : 'uniformMatrix4fv',
+                    value       : this._viewMat,
+                    location    : this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
                 },
             }
 
@@ -120,17 +121,11 @@ export default class GL_BP {
         for(const uniform in _uniforms){
             if(_uniforms.hasOwnProperty(uniform)){
                 const uniform_desc = _uniforms[uniform];
-                if(uniform_desc.type == 'uniform1i'){
-                    this.gl.activeTexture(this.gl.TEXTURE0);
-                    this.gl.bindTexture(this.gl.TEXTURE_2D, uniform_desc.value);
-                    this.gl.uniform1i(uniform_desc.location, 0);
-                } else {
-                    this.gl[uniform_desc.type](
-                        uniform_desc.location,
-                        false,
-                        uniform_desc.value,
-                    );
-                }
+                this.gl[uniform_desc.uniformType](
+                    uniform_desc.location,
+                    false,
+                    uniform_desc.value,
+                );
             }
         }
     }
@@ -182,11 +177,8 @@ export default class GL_BP {
                             // LINES
                         case 2 : 
                             // LINE_LOOP
-                        case 5 : {
+                        case 5 :
                             // TRIANGLE_STRIP
-                            this.gl.drawElements(program_desc.mode, geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
-                            break;
-                        } 
                         default : {
                             this.gl.drawElements(program_desc.mode, geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
                         }
@@ -199,95 +191,6 @@ export default class GL_BP {
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
                 this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
             }
-        }
-    }
-
-    texture(_options){
-        // Default options, to be overwritten by _options passed in
-        let options = {
-            program : null,
-            level : 0,
-            width : 1,
-            height : 1,
-            data : null,
-            border : 0,
-            internalFormat : 'RGBA8',
-            format : 'RGBA',
-            wrap : 'CLAMP_TO_EDGE',
-            filter : 'NEAREST',
-            type : 'UNSIGNED_BYTE'
-        }
-
-        Object.assign(options, _options);
-        // Make some data if none exists
-        if(options.data == null){
-            options.width = 1;
-            options.height = 1;
-            options.data = new Uint8Array([0,0,255,255]);
-        }
-
-        const texture = this.gl.createTexture();
-
-
-        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-
-        this.gl.texImage2D(this.gl.TEXTURE_2D,
-            0, // Level
-            this.gl[options.internalFormat],
-            options.width,
-            options.height,
-            options.border,
-            this.gl[options.format],
-            this.gl[options.type],
-            options.data
-        );
-
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl[options.wrap]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl[options.wrap]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl[options.filter]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
-
-        this._programs[options.program].globalUniforms['u_Texture'] = {
-            type     : 'uniform1i',
-            value    : texture,
-            location : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
-        }
-    }
-
-    testTexture(_program){
-        var texture = this.gl.createTexture();
-        // use texture unit 0
-        // gl.activeTexture(gl.TEXTURE0 + 0);
-        // bind to the TEXTURE_2D bind point of texture unit 0
-        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-        const level = 0;
-        const internalFormat = this.gl.R8;
-        const width = 3;
-        const height = 2;
-        const border = 0;
-        const format = this.gl.RED;
-        const type = this.gl.UNSIGNED_BYTE;
-        const data = new Uint8Array([
-            128,  64, 128,
-            0, 192,   0,
-        ]);
-        // if(width < 4 || height < 4)
-        this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
-        this.gl.texImage2D(this.gl.TEXTURE_2D, level, internalFormat, width, height, border,
-            format, type, data);
-
-        // set the filtering so we don't need mips
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-
-        this._textures['testTex'] = texture;
-
-        this._programs[_program].globalUniforms['u_Texture'] = {
-            type     : 'uniform1i',
-            value    : texture,
-            location : this.gl.getUniformLocation(this._programs[_program].shader, 'u_Texture'),
         }
     }
 

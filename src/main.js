@@ -20,10 +20,10 @@ window.onload = function main() {
     GL.initShaderProgram('lines', pointsVert, basicFrag, 'LINES');
     GL.initShaderProgram('debug', pointsVert, basicFrag, 'TRIANGLE_STRIP');
     GL.initShaderProgram('texture', textureVert, textureFrag, 'TRIANGLES');
+    GL.initShaderProgram('points', pointsVert, pointsFrag, 'POINTS');
 
     GL.updateGlobalUniforms();
     GL.cameraPosition = [0, 0, 5];
-    // GL.testTexture('texture');
     const texOptions = {
         program : 'texture',
         width : 2,
@@ -35,12 +35,15 @@ window.onload = function main() {
             0, 0, 255, 255,
         ]),
     };
-    GL.texture(texOptions);
 
-    const quad = new Quad(GL.gl);
+    // const quad = new Quad(GL.gl);
     // GL.linkProgram('debug', quad);
+    // const rSphere = new RandomPointSphere(GL.gl, 10000);
+    // GL.linkProgram('points', rSphere);
+    // rSphere.rotate = { s:0.001, r:[0, 1, 1]};
 
     const uCube = new Cube(GL.gl, 'SOLID');
+    uCube.texture(texOptions);
     GL.linkProgram('texture', uCube);
     uCube.rotate = { s:0.001, r:[1, 1, 0]};
 

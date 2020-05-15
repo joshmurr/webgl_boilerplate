@@ -34,14 +34,6 @@ export default class RandomPointSphere extends Geometry {
 
         this._VAO = this.gl.createVertexArray();
         this.setupVAO(attributes);
-
-        this._uniforms = {
-            u_ModelMatrix : {
-                value    : mat4.create(),
-                type     : 'uniformMatrix4fv',
-                location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
-            },
-        }
+        this.linkUniforms(_program);
     }
-
 }
