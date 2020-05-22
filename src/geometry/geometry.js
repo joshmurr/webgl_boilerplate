@@ -52,7 +52,8 @@ export default class Geometry {
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
 
-    linkUniforms(_program){
+    linkUniforms(_program, _textures){
+        /* _texture is an array so a geom can have multiple textures */
         // UNIFORMS
         this._uniforms = {
             u_ModelMatrix : {
@@ -62,14 +63,16 @@ export default class Geometry {
             },
         }
         // Update textures with program location
-        for(const tex in this._textures){
-            if(this._textures.hasOwnProperty(tex)){
-                const texture = this._textures[tex];
-                texture.location = this.gl.getUniformLocation(_program, texture.name);
-            }
-        }
+        // for(const tex in this._textures){
+            // if(this._textures.hasOwnProperty(tex)){
+                // const texture = this._textures[tex];
+                // texture.location = this.gl.getUniformLocation(_program, texture.name);
+            // }
+        // }
         // Add textures into uniforms
-        Object.assign(this._uniforms, this._textures);
+        for(const tex of _textures){
+            Object.assign(this._uniforms, tex);
+        }
     }
 
     setUniforms(){

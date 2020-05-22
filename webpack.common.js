@@ -5,12 +5,6 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = {
-    mode: 'development',
-    entry: './src/main.js',
-    devtool: 'inline-source-map',
-    devServer: {
-        contentBase: '/dist',
-    },
     module: {
         rules: [
             {
@@ -38,6 +32,4 @@ module.exports = {
         filename: '[name].bundle.js',
         path: path.resolve(__dirname, 'dist'),
     },
-    mode : devMode ? 'development' : 'production',
-    watch : devMode,
 };

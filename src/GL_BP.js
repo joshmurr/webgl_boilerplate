@@ -1,8 +1,14 @@
 import { mat4, vec3 } from 'gl-matrix';
+import Icosahedron from './geometry/icosahedron.js';
+import RandomPointSphere from './geometry/randomPointSphere.js';
+import Cube from './geometry/cube.js';
+import Quad from './geometry/quad.js';
 
 export default class GL_BP {
     constructor(){
         this._programs = {};
+        this._textures = {};
+        this._framebuffers = {};
         this._time = 0.0;
         this._oldTimestamp = 0.0;
 
@@ -33,6 +39,18 @@ export default class GL_BP {
         }
     }
 
+    initTarget(width, height, canvasID){
+        this.canvas = document.getElementById("canvasID");
+        this.canvas.width = this.WIDTH = width;
+        this.canvas.height = this.HEIGHT = height;
+        this.gl = this.canvas.getContext('webgl2');
+        this._aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
+        if (!this.gl) {
+            console.warn("You're browser does not support WebGL 2.0. Soz.");
+            return;
+        }
+    }
+
     initShaderProgram(name, vsSource, fsSource, _mode) {
         const shaderProgram = this.gl.createProgram();
         const vertexShader = this.loadShader(this.gl.VERTEX_SHADER, vsSource);
@@ -51,6 +69,7 @@ export default class GL_BP {
             shader   : shaderProgram,
             mode     : this.gl[_mode],
             geometry : [],
+            textures : [],
             globalUniforms : {
                 u_ProjectionMatrix : {
                     type        : 'mat4',
@@ -112,9 +131,21 @@ export default class GL_BP {
             this._position, this._target, this._up);
     }
 
-    linkProgram(_program, _geometry){
+    linkProgram(_program, _geometry, _textureName='u_Texture'){
         this._programs[_program].geometry.push(_geometry);
-        _geometry.linkProgram(this._programs[_program].shader);
+
+        // Update textures with program location
+        // Textures are stored in the GL_BP object
+        // for(const tex in this._textures){
+            // if(this._textures.hasOwnProperty(tex)){
+                const texture = this._textures[_textureName];
+                texture.location = this.gl.getUniformLocation(this._programs[_program].shader, _textureName);
+            // }
+        // }
+
+        // this._programs[_program].textures.push(_textureName);
+        // Textures are then passed along to get put into the geometry specific uniforms
+        _geometry.linkProgram(this._programs[_program].shader, [{_textureName:texture}]);
     }
 
     setGlobalUniforms(_uniforms){
@@ -128,6 +159,11 @@ export default class GL_BP {
                 );
             }
         }
+    }
+
+    framebuffer(_name){
+        // Create empty framebuffer
+        this._framebuffers[_name] = this.gl.createFramebuffer();
     }
 
     draw(now){
@@ -230,6 +266,63 @@ export default class GL_BP {
         this._textures[_name] = texture;
     }
 
+    dataTexture(_options){
+        // Default options, to be overwritten by _options passed in
+        let options = {
+            program : null,
+            name : 'u_Texture',
+            level : 0,
+            unit : 0,
+            width : 1,
+            height : 1,
+            data : null,
+            border : 0,
+            internalFormat : 'RGBA8',
+            format : 'RGBA',
+            wrap : 'CLAMP_TO_EDGE',
+            filter : 'NEAREST',
+            type : 'UNSIGNED_BYTE'
+        }
+
+        Object.assign(options, _options);
+        // Make some data if none exists
+        if(options.data == null){
+            options.width = 1;
+            options.height = 1;
+            options.data = new Uint8Array([0,0,255,255]);
+        }
+
+        const texture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+        this.gl.texImage2D(this.gl.TEXTURE_2D,
+            0, // Level
+            this.gl[options.internalFormat],
+            options.width,
+            options.height,
+            options.border,
+            this.gl[options.format],
+            this.gl[options.type],
+            options.data
+        );
+
+        // In case of width/height errors use this:
+        // this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl[options.wrap]);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl[options.wrap]);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl[options.filter]);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
+
+        // These are basically temporary uniforms to be linked later
+        this._textures[options.name] = {
+            type        : 'texture',
+            uniformType : 'uniform1i',
+            value       : texture,
+            // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
+            location    : null, // Not yet assigned
+            unit        : options.unit
+        }
+    }
 
     randomData(DIMS){
         let d = [];
@@ -258,5 +351,21 @@ export default class GL_BP {
 
     set FOV(val){
         this._fieldOfView = val * Math.PI/180;
+    }
+
+    Quad(){
+        return new Quad(this.gl);
+    }
+
+    Cube(type){
+        return new Cube(this.gl, type);
+    }
+
+    RandomPointSphere(numPoints){
+        return new RandomPointSphere(this.gl, numPoints);
+    }
+
+    Icosahedron(){
+        return new Icosahedron(this.gl);
     }
 }
