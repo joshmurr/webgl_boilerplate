@@ -1,5 +1,4 @@
 import GL_BP from './GL_BP';
-// import './styles.css';
 var facesVert = require('./glsl/facesVert.glsl');
 var facesFrag = require('./glsl/facesFrag.glsl');
 var pointsVert = require('./glsl/pointsVert.glsl');
@@ -43,22 +42,6 @@ window.onload = function main() {
             0, 255, 255, 255,
         ]),
     };
-
-    // GL.linkProgram('debug', quad);
-    // const rSphere = new RandomPointSphere(GL.gl, 10000);
-    // GL.linkProgram('points', rSphere);
-    // rSphere.rotate = { s:0.001, r:[0, 1, 1]};
-
-    // const uCube = new Cube(GL.gl, 'SOLID');
-    // uCube.texture(texOptions);
-    // GL.linkProgram('texture', uCube);
-    // uCube.translate = [0, 0, -10];
-    // uCube.rotate = { s:0.001, r:[1, 1, 0]};
-
-    // const quad = GL.Quad();
-    // quad.texture(texOptions);
-    // quad.translate = [1, 0, -3];
-    // GL.linkProgram('texture', quad);
 
     const quad2 = GL.Quad();
     GL.dataTexture(tex2); // Create the texture

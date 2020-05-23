@@ -136,14 +136,9 @@ export default class GL_BP {
 
         // Update textures with program location
         // Textures are stored in the GL_BP object
-        // for(const tex in this._textures){
-            // if(this._textures.hasOwnProperty(tex)){
-                const texture = this._textures[_textureName];
-                texture.location = this.gl.getUniformLocation(this._programs[_program].shader, _textureName);
-            // }
-        // }
+        const texture = this._textures[_textureName];
+        texture.location = this.gl.getUniformLocation(this._programs[_program].shader, _textureName);
 
-        // this._programs[_program].textures.push(_textureName);
         // Textures are then passed along to get put into the geometry specific uniforms
         _geometry.linkProgram(this._programs[_program].shader, [{_textureName:texture}]);
     }

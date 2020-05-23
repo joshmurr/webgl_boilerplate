@@ -62,13 +62,6 @@ export default class Geometry {
                 location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
             },
         }
-        // Update textures with program location
-        // for(const tex in this._textures){
-            // if(this._textures.hasOwnProperty(tex)){
-                // const texture = this._textures[tex];
-                // texture.location = this.gl.getUniformLocation(_program, texture.name);
-            // }
-        // }
         // Add textures into uniforms
         for(const tex of _textures){
             Object.assign(this._uniforms, tex);
@@ -94,63 +87,6 @@ export default class Geometry {
         }
     }
 
-    texture(_options){
-        // Default options, to be overwritten by _options passed in
-        let options = {
-            program : null,
-            name : 'u_Texture',
-            level : 0,
-            unit : 0,
-            width : 1,
-            height : 1,
-            data : null,
-            border : 0,
-            internalFormat : 'RGBA8',
-            format : 'RGBA',
-            wrap : 'CLAMP_TO_EDGE',
-            filter : 'NEAREST',
-            type : 'UNSIGNED_BYTE'
-        }
-
-        Object.assign(options, _options);
-        // Make some data if none exists
-        if(options.data == null){
-            options.width = 1;
-            options.height = 1;
-            options.data = new Uint8Array([0,0,255,255]);
-        }
-
-        const texture = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-
-        this.gl.texImage2D(this.gl.TEXTURE_2D,
-            0, // Level
-            this.gl[options.internalFormat],
-            options.width,
-            options.height,
-            options.border,
-            this.gl[options.format],
-            this.gl[options.type],
-            options.data
-        );
-
-        // In case of width/height errors use this:
-        // this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl[options.wrap]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl[options.wrap]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl[options.filter]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
-
-        // These are basically temporary uniforms to be linked later
-        this._textures[options.name] = {
-            type        : 'texture',
-            uniformType : 'uniform1i',
-            value       : texture,
-            // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
-            location    : null, // Not yet assigned
-            unit        : options.unit
-        }
-    }
     get VAO(){
         return this._VAO;
     }
