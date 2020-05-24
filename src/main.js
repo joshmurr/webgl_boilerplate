@@ -26,15 +26,14 @@ window.onload = function main() {
         "v_Velocity",
     ];
 
-    GL.initShaderProgram('update', updateVert, updateFrag, 'POINTS', transformFeedbackVaryings);
-    GL.initShaderProgram('render', renderVert, renderFrag, 'POINTS');
+    // GL.initShaderProgram('update', updateVert, updateFrag, 'POINTS', transformFeedbackVaryings);
 
-    // GL.updateGlobalUniforms();
-    // GL.cameraPosition = [0, 0, 2];
-
-    const ParticleSystem = GL.ParticleSystem(100);
-    // pointCloud.rotate = {s:0.0005, a:[0,1,0.6]};
-    GL.linkProgram('points', pointCloud);
+    // GL.globalUniforms([ LIST OF GLOBAL UNIFORMS ]);
+    GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
+    GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
+    const ParticleSystem = GL.ParticleSystem('update', 'render', 1000);
+    // GL.linkGeometry('update', _geometry);
+    GL.initProgramUniforms('update', ['u_TimeDelta']);
 
     function draw(now) {
         GL.draw(now);

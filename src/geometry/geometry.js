@@ -24,9 +24,9 @@ export default class Geometry {
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer.buffer_object);
             let offset = 0;
 
-            for(const attrib in _attributes){
-                if(_attributes.hasOwnProperty(attrib)){
-                    const attrib_desc = _attributes[attrib];
+            for(const attrib in buffer.attributes){
+                if(buffer.attributes.hasOwnProperty(attrib)){
+                    const attrib_desc = buffer.attributes[attrib];
                     this.gl.enableVertexAttribArray(attrib_desc.location);
                     this.gl.vertexAttribPointer(
                         attrib_desc.location,
@@ -136,7 +136,7 @@ export default class Geometry {
     }
 
     get numVertices(){
-        return this._verts.length;
+        return this._verts.length/3;
     }
 
     get numIndices(){

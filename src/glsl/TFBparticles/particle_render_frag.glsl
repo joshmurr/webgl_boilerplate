@@ -16,11 +16,12 @@ void main() {
     if (distance > 1.0) {
             discard;
     }
-    o_FragColor = vec4(
-            palette(t,
-                vec3(0.8,0.3,0.2),
-                vec3(0.7,0.3,0.3),
-                vec3(0.9,0.4,0.2),
-                vec3(0.2,0.15,0.20)), 1.0-t
-            );
+    o_FragColor = vec4(1.0);
+    // o_FragColor = vec4(
+            // palette(t,
+                // vec3(0.8,0.3,0.2),
+                // vec3(0.7,0.3,0.3),
+                // vec3(0.9,0.4,0.2),
+                // vec3(0.2,0.15,0.20)), 1.0-t
+            // );
 }

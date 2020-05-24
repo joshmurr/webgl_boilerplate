@@ -2,12 +2,12 @@ import Geometry from "./geometry.js";
 import { mat4 } from "gl-matrix";
 
 export default class ParticleSystem extends Geometry {
-    constructor(gl, _numPoints){
+    constructor(gl, _numParticles){
         super(gl);
-        this._numPoints = _numPoints;
+        this._numParticles = _numParticles;
         const min_age = 1.0;
         const max_age = 1.5;
-        for(let i=0; i<this._numPoints; ++i){
+        for(let i=0; i<this._numParticles; ++i){
             // Position
             // data.push(0.0, 0.0);
             this._verts.push(Math.random(), Math.random());
@@ -19,68 +19,69 @@ export default class ParticleSystem extends Geometry {
             // Velocity
             this._verts.push(0.0, 0.0);
         }
+
+        this._read  = 0;
+        this._write = 1;
+
+        this._buffers = [];
+        this._VAOs = [];
+
+        this._birthRate = 0.5;
+        this._bornParticles = 0;
     }
-    /*
-    const update_attrib_locations = {
-        i_Position: {
-            location: gl.getAttribLocation(update_program, "i_Position"),
-            num_components: 2,
-            type: gl.FLOAT
-        },
-        i_Age: {
-            location: gl.getAttribLocation(update_program, "i_Age"),
-            num_components: 1,
-            type: gl.FLOAT
-        },
-        i_Life: {
-            location: gl.getAttribLocation(update_program, "i_Life"),
-            num_components: 1,
-            type: gl.FLOAT
-        },
-        i_Velocity: {
-            location: gl.getAttribLocation(update_program, "i_Velocity"),
-            num_components: 2,
-            type: gl.FLOAT
-        }
-    };
-    const render_attrib_locations = {
-        i_Position: {
-            location: gl.getAttribLocation(render_program, "i_Position"),
-            num_components: 2,
-            type: gl.FLOAT
-        },
-        i_Age: {
-            location: gl.getAttribLocation(render_program, "i_Age"),
-            num_components: 1,
-            type: gl.FLOAT
-        },
-        i_Life: {
-            location: gl.getAttribLocation(render_program, "i_Life"),
-            num_components: 1,
-            type: gl.FLOAT
-        },
-    };
-    */
+
+    get read(){
+        return this._read;
+    }
+    get write(){
+        return this._write;
+    }
+    set read(_val){
+        this._read = _val;;
+    }
+    set write(_val){
+        this._write = _val;
+    }
+
+    get VAOs(){
+        return this._VAOs;
+    }
+    get buffers(){
+        return this._buffers;
+    }
+
+    get VAO(){
+        const tmp = this._read;
+        this._read = this._write;
+        this._write = tmp;
+        return this._VAOs[this._write+2];
+    }
+
+    get numVertices(){
+        // return this._numParticles;
+        return this._bornParticles;
+    }
 
     linkProgram(_updateProgram, _renderProgram){
-        const buffers = [
+        this._buffers.push(
             this.gl.createBuffer(),
             this.gl.createBuffer()
-        ];
+        );
 
+        const data = new Float32Array(this._verts);
         /* PUT DATA IN THE BUFFERS */
-        for(const buffer of buffers){
+        for(const buffer of this._buffers){
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
-            this.gl.bufferData(this.gl.ARRAY_BUFFER, this._verts, this.gl.STREAM_DRAW);
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STREAM_DRAW);
         }
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
 
-        const VAOs = [
+        this._VAOs.push(
             this.gl.createVertexArray(), /* update 1 */
             this.gl.createVertexArray(), /* update 2 */
             this.gl.createVertexArray(), /* render 1 */
             this.gl.createVertexArray(), /* render 2 */
-        ];
+        );
 
         const updateAttributes = {
             i_Position: {
@@ -153,36 +154,35 @@ export default class ParticleSystem extends Geometry {
 
         const VAO_desc = [
             {
-                vao: VAOs[0],
-                // OR -> vao: this.gl.createVertexArray()
+                vao: this._VAOs[0],
                 buffers: [{
-                    buffer_object: buffers[0],
+                    buffer_object: this._buffers[0],
                     stride: 4 * 6,
-                    attribs: updateAttributes
+                    attributes: updateAttributes
                 }]
             },
             {
-                vao: vaos[1],
+                vao: this._VAOs[1],
                 buffers: [{
-                    buffer_object: buffers[1],
+                    buffer_object: this._buffers[1],
                     stride: 4 * 6,
-                    attribs: updateAttributes
+                    attributes: updateAttributes
                 }]
             },
             {
-                vao: vaos[2],
+                vao: this._VAOs[2],
                 buffers: [{
-                    buffer_object: buffers[0],
+                    buffer_object: this._buffers[0],
                     stride: 4 * 6,
-                    attribs: renderAttributes
+                    attributes: renderAttributes
                 }],
             },
             {
-                vao: vaos[3],
+                vao: this._VAOs[3],
                 buffers: [{
-                    buffer_object: buffers[1],
+                    buffer_object: this._buffers[1],
                     stride: 4 * 6,
-                    attribs: renderAttributes
+                    attributes: renderAttributes
                 }],
             },
         ];
@@ -191,25 +191,68 @@ export default class ParticleSystem extends Geometry {
             this.setupVAO(VAO.buffers, VAO.vao);
         }
 
-        const updateUniforms = {
-            u_TimeDelta : {
-                value    : mat4.create(),
-                type     : 'uniformMatrix4fv',
-                uniformType : 'mat4',
-                programName : null,
-                location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
-            },
-            u_ModelMatrix : {
-                value    : mat4.create(),
-                type     : 'uniformMatrix4fv',
-                uniformType : 'mat4',
-                programName : null,
-                location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
-            },
-        }
+        // const updateUniforms = {
+        // u_TimeDelta : {
+        // value    : mat4.create(),
+        // type     : 'uniformMatrix4fv',
+        // uniformType : 'mat4',
+        // programName : null,
+        // location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
+        // },
+        // u_ModelMatrix : {
+        // value    : mat4.create(),
+        // type     : 'uniformMatrix4fv',
+        // uniformType : 'mat4',
+        // programName : null,
+        // location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
+        // },
+        // }
 
 
         // Just link u_Model Matrix with the render program
-        this.linkUniforms(_renderProgram);
+        // this.linkUniforms(_renderProgram);
+    }
+
+    step(_gl, _dT){
+        // console.log(`State -> read:${this._read} write:${this._write}`);
+        const num_part = this._bornParticles;
+        if (this._bornParticles < this._numParticles) {
+            this._bornParticles = Math.min(this._numParticles,
+                Math.floor(this._bornParticles + this._birthRate * _dT));
+        }
+
+        _gl.bindVertexArray(this._VAOs[this._read]);
+
+        /* Bind the "write" buffer as transform feedback - the varyings of the
+         *      update shader will be written here. */
+        _gl.bindBufferBase(
+            _gl.TRANSFORM_FEEDBACK_BUFFER, 0, this._buffers[this._write]);
+
+        /* Since we're not actually rendering anything when updating the particle
+         *      this, disable rasterization.*/
+        _gl.enable(_gl.RASTERIZER_DISCARD);
+
+        /* Begin transform feedback! */
+        _gl.beginTransformFeedback(_gl.POINTS);
+        _gl.drawArrays(_gl.POINTS, 0, num_part);
+        _gl.endTransformFeedback();
+        _gl.disable(_gl.RASTERIZER_DISCARD);
+        /* Don't forget to unbind the transform feedback buffer! */
+        _gl.bindBufferBase(_gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+    }
+
+    draw(_gl){
+        /* Now, we draw the particle system. Note that we're actually
+         *      drawing the data from the "read" buffer, not the "write" buffer
+         *           that we've written the updated data to. */
+        // _gl.bindVertexArray(this._VAOs[this.read + 2]);
+        _gl.bindVertexArray(this._VAOs[this.read + 2]);
+        _gl.drawArrays(_gl.POINTS, 0, this._bornParticles);
+
+        /* Finally, we swap read and write buffers. The updated this will be
+         *      rendered on the next frame. */
+        const tmp = this.read;
+        this.read = this.write;
+        this.write = tmp;
     }
 }
