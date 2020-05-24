@@ -384,23 +384,15 @@ export default class GL_BP {
                     geom.setUniforms(program);
 
                     // console.log(this.gl.getParameter(this.gl.ARRAY_BUFFER_BINDING));
-                    console.log(this.gl.getVertexAttrib(0, this.gl.VERTEX_ATTRIB_ARRAY_STRIDE));
+                    // console.log(this.gl.getVertexAttrib(0, this.gl.VERTEX_ATTRIB_ARRAY_TYPE));
                     // console.log(this.gl.getParameter(this.gl.ELEMENT_ARRAY_BUFFER_BINDING));
 
 
                     switch(program_desc.mode){
                         case 'POINTS' : {
-                            // POINTS
                             this.gl.drawArrays(this.gl[program_desc.mode], 0, geom.numVertices);
                             break;
                         }
-                        case 1 :
-                            // LINES
-                        case 2 :
-                            // LINE_LOOP
-                        case 5 :
-                            // TRIANGLE_STRIP
-                            // TRIANGLES
                         default : {
                             this.gl.drawElements(this.gl[program_desc.mode], geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
                         }

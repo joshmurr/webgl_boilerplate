@@ -49,11 +49,11 @@ export default class Geometry {
             const indexBuffer = this.gl.createBuffer();
             this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
             this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this._indices), this.gl.STATIC_DRAW);
-            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
         }
         // Empty Buffers:
         this.gl.bindVertexArray(null);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+        this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
 
     addUniform(_name, _initialValue, _type, _glType, _progName, _program){
