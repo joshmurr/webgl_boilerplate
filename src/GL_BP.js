@@ -1,6 +1,7 @@
 import { mat4, vec3 } from 'gl-matrix';
 import Icosahedron from './geometry/icosahedron.js';
 import RandomPointSphere from './geometry/randomPointSphere.js';
+import PointCloud from './geometry/pointCloud.js';
 import Cube from './geometry/cube.js';
 import Quad from './geometry/quad.js';
 
@@ -40,7 +41,7 @@ export default class GL_BP {
     }
 
     initTarget(width, height, canvasID){
-        this.canvas = document.getElementById("canvasID");
+        this.canvas = document.getElementById(canvasID);
         this.canvas.width = this.WIDTH = width;
         this.canvas.height = this.HEIGHT = height;
         this.gl = this.canvas.getContext('webgl2');
@@ -51,12 +52,20 @@ export default class GL_BP {
         }
     }
 
-    initShaderProgram(name, vsSource, fsSource, _mode) {
+    initShaderProgram(name, vsSource, fsSource, _mode, _transformFeedbackVaryings=null) {
         const shaderProgram = this.gl.createProgram();
         const vertexShader = this.loadShader(this.gl.VERTEX_SHADER, vsSource);
         const fragmentShader = this.loadShader(this.gl.FRAGMENT_SHADER, fsSource);
         this.gl.attachShader(shaderProgram, vertexShader);
         this.gl.attachShader(shaderProgram, fragmentShader);
+
+        if(_transformFeedbackVaryings != null){
+            this.gl.transformFeedbackVaryings(
+                shaderProgram,
+                _transformFeedbackVaryings,
+                this.gl.INTERLEAVED_ATTRIBS
+            );
+        }
 
         this.gl.linkProgram(shaderProgram);
 
@@ -83,8 +92,8 @@ export default class GL_BP {
                     value       : this._viewMat,
                     location    : this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
                 },
-            }
-
+            },
+            transformFeedbackVaryings : _transformFeedbackVaryings,
         }
     }
 
@@ -99,13 +108,6 @@ export default class GL_BP {
             return null;
         }
         return shader;
-    }
-
-    initTransformFeedbackVarying(programName, transformFeedbackVaryings){
-        gl.transformFeedbackVaryings(
-            this._programs[programName].shader,
-            transformFeedbackVaryings,
-            gl.INTERLEAVED_ATTRIBS)
     }
 
     updateGlobalUniforms(){
@@ -131,16 +133,20 @@ export default class GL_BP {
             this._position, this._target, this._up);
     }
 
-    linkProgram(_program, _geometry, _textureName='u_Texture'){
+    linkProgram(_program, _geometry, _textureName=null){
         this._programs[_program].geometry.push(_geometry);
 
-        // Update textures with program location
-        // Textures are stored in the GL_BP object
-        const texture = this._textures[_textureName];
-        texture.location = this.gl.getUniformLocation(this._programs[_program].shader, _textureName);
+        const geometryTex = {};
+        if(_textureName){
+            // Update textures with program location
+            // Textures are stored in the GL_BP object
+            const texture = this._textures[_textureName];
+            texture.location = this.gl.getUniformLocation(this._programs[_program].shader, texture.uniformName);
 
-        // Textures are then passed along to get put into the geometry specific uniforms
-        _geometry.linkProgram(this._programs[_program].shader, [{_textureName:texture}]);
+            // Textures are then passed along to get put into the geometry specific uniforms
+            geometryTex[texture.uniformName] = texture;
+        }
+        _geometry.linkProgram(this._programs[_program].shader, [geometryTex]);
     }
 
     setGlobalUniforms(_uniforms){
@@ -161,8 +167,29 @@ export default class GL_BP {
         this._framebuffers[_name] = this.gl.createFramebuffer();
     }
 
-    draw(now){
-        // this._time = 5 + now * 0.0001;
+    get framebuffers(){
+        return this._framebuffers;
+    }
+
+    framebufferTexture2D(_framebuffer, _texture){
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this._framebuffers[_framebuffer]);
+        this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0,
+            this.gl.TEXTURE_2D, _texture, 0);
+    }
+
+    get textures(){
+        return this._textures;
+    }
+
+    bindTexture(_texture){
+        this.gl.bindTexture(this.gl.TEXTURE_2D, _texture);
+    }
+
+    bindMainViewport(){
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+    }
+
+    draw(now, _selectedProgram=null, _viewPort=[null, null]){
         let deltaTime = 0.0;
         if (this._oldTimestamp != 0) {
             deltaTime = now - this._oldTimestamp;
@@ -173,18 +200,22 @@ export default class GL_BP {
         this._oldTimestamp = now;
         this._time += deltaTime;
 
-        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+        this.gl.viewport(0, 0, 
+            _viewPort[0] || this.gl.canvas.width, 
+            _viewPort[1] || this.gl.canvas.height);
 
-        this.gl.clearColor(0.95, 0.95, 0.95, 1.0);
-        this.gl.clearDepth(1.0);
+        if(!_viewPort[0] && !_viewPort[1]){
+            this.gl.clearColor(0.95, 0.95, 0.95, 1.0);
+            this.gl.clearDepth(1.0);
 
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-        this.gl.enable(this.gl.CULL_FACE);
-        this.gl.enable(this.gl.DEPTH_TEST);
+            this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+            this.gl.enable(this.gl.CULL_FACE);
+            this.gl.enable(this.gl.DEPTH_TEST);
+        }
 
         for(const program in this._programs){
             if(this._programs.hasOwnProperty(program)){
-                const program_desc = this._programs[program];
+                const program_desc = _selectedProgram === null ? this._programs[program] : this._programs[_selectedProgram];
 
                 if(program_desc.geometry.length < 1) continue;
 
@@ -196,7 +227,7 @@ export default class GL_BP {
                     this.gl.bindVertexArray(geom.VAO);
 
                     geom.updateModelMatrix(this._time);
-                    geom.setUniforms();
+                    geom.setUniforms(program);
 
                     switch(program_desc.mode){ 
                         case 0 : {
@@ -210,6 +241,7 @@ export default class GL_BP {
                             // LINE_LOOP
                         case 5 :
                             // TRIANGLE_STRIP
+                            // TRIANGLES
                         default : {
                             this.gl.drawElements(program_desc.mode, geom.numIndices, this.gl.UNSIGNED_SHORT, 0);
                         }
@@ -222,6 +254,8 @@ export default class GL_BP {
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
                 this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
             }
+            // If a _selectedProgram is passed, skip the rest
+            if(_selectedProgram) continue;
         }
     }
 
@@ -265,7 +299,8 @@ export default class GL_BP {
         // Default options, to be overwritten by _options passed in
         let options = {
             program : null,
-            name : 'u_Texture',
+            name: null,
+            uniformName: 'u_Texture',
             level : 0,
             unit : 0,
             width : 1,
@@ -280,12 +315,7 @@ export default class GL_BP {
         }
 
         Object.assign(options, _options);
-        // Make some data if none exists
-        if(options.data == null){
-            options.width = 1;
-            options.height = 1;
-            options.data = new Uint8Array([0,0,255,255]);
-        }
+
 
         const texture = this.gl.createTexture();
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
@@ -312,6 +342,7 @@ export default class GL_BP {
         this._textures[options.name] = {
             type        : 'texture',
             uniformType : 'uniform1i',
+            uniformName : options.uniformName,
             value       : texture,
             // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
             location    : null, // Not yet assigned
@@ -319,17 +350,6 @@ export default class GL_BP {
         }
     }
 
-    randomData(DIMS){
-        let d = [];
-        let size = 1;
-        for(const n of DIMS){
-            size *= n;
-        }
-        for(let i=0; i<size; ++i){
-            d.push(Math.random()*255.0);
-        }
-        return new Uint8Array(d);
-    }
     // GETTERS - SETTERS
     get programs(){
         return this._programs;
@@ -358,6 +378,10 @@ export default class GL_BP {
 
     RandomPointSphere(numPoints){
         return new RandomPointSphere(this.gl, numPoints);
+    }
+
+    PointCloud(numPoints, emptyData){
+        return new PointCloud(this.gl, numPoints, emptyData);
     }
 
     Icosahedron(){
