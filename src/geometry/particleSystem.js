@@ -23,9 +23,6 @@ export default class ParticleSystem extends Geometry {
         this._read  = 0;
         this._write = 1;
 
-        this._buffers = [];
-        this._VAOs = [];
-
         this._birthRate = 0.5;
         this._bornParticles = 0;
     }
@@ -54,7 +51,7 @@ export default class ParticleSystem extends Geometry {
         const tmp = this._read;
         this._read = this._write;
         this._write = tmp;
-        return this._VAOs[this._write+2];
+        return this._VAOs[tmp];
     }
 
     get numVertices(){
@@ -85,52 +82,28 @@ export default class ParticleSystem extends Geometry {
 
         const updateAttributes = {
             i_Position: {
-                // buffer: singleBuffer,
-                // bufferData: new Float32Array(this._verts),
-                // usage: this.gl.STATIC_DRAW,
                 location: this.gl.getAttribLocation(_updateProgram, "i_Position"),
                 num_components: 2,
                 type: this.gl.FLOAT,
                 size: 4,
-                // normalize: false,
-                // stride: 0,
-                // offset: 0,
             },
             i_Age: {
-                // buffer: singleBuffer,
-                // bufferData: new Float32Array(this._verts),
-                // usage: this.gl.STATIC_DRAW,
                 location: this.gl.getAttribLocation(_updateProgram, "i_Age"),
                 num_components: 1,
                 type: this.gl.FLOAT,
                 size: 4,
-                // normalize: false,
-                // stride: 0,
-                // offset: 0,
             },
             i_Life: {
-                // buffer: singleBuffer,
-                // bufferData: new Float32Array(this._verts),
-                // usage: this.gl.STATIC_DRAW,
                 location: this.gl.getAttribLocation(_updateProgram, "i_Life"),
                 num_components: 1,
                 type: this.gl.FLOAT,
                 size: 4,
-                // normalize: false,
-                // stride: 0,
-                // offset: 0,
             },
             i_Velocity: {
-                // buffer: singleBuffer,
-                // bufferData: new Float32Array(this._verts),
-                // usage: this.gl.STATIC_DRAW,
                 location: this.gl.getAttribLocation(_updateProgram, "i_Velocity"),
                 num_components: 2,
                 type: this.gl.FLOAT,
                 size: 4,
-                // normalize: false,
-                // stride: 0,
-                // offset: 0,
             },
         };
 
@@ -139,17 +112,7 @@ export default class ParticleSystem extends Geometry {
                 location: this.gl.getAttribLocation(_renderProgram, "i_Position"),
                 num_components: 2,
                 type: this.gl.FLOAT
-            },
-            i_Age: {
-                location: this.gl.getAttribLocation(_renderProgram, "i_Age"),
-                num_components: 1,
-                type: this.gl.FLOAT
-            },
-            i_Life: {
-                location: this.gl.getAttribLocation(_renderProgram, "i_Life"),
-                num_components: 1,
-                type: this.gl.FLOAT
-            },
+            }
         };
 
         const VAO_desc = [
@@ -190,24 +153,6 @@ export default class ParticleSystem extends Geometry {
         for(const VAO of VAO_desc){
             this.setupVAO(VAO.buffers, VAO.vao);
         }
-
-        // const updateUniforms = {
-        // u_TimeDelta : {
-        // value    : mat4.create(),
-        // type     : 'uniformMatrix4fv',
-        // uniformType : 'mat4',
-        // programName : null,
-        // location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
-        // },
-        // u_ModelMatrix : {
-        // value    : mat4.create(),
-        // type     : 'uniformMatrix4fv',
-        // uniformType : 'mat4',
-        // programName : null,
-        // location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
-        // },
-        // }
-
 
         // Just link u_Model Matrix with the render program
         // this.linkUniforms(_renderProgram);

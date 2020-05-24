@@ -13,7 +13,7 @@ void main(){
     v_Age = i_Age;
     v_Life = i_Life;
 
-    gl_PointSize = 5.0 + 16.0 * (1.0 - i_Age/i_Life);
+    gl_PointSize = 1.0 + 10.0 * (1.0 - i_Age/i_Life);
     // gl_PointSize = 10.0;
     gl_Position = vec4(i_Position, 0.0, 1.0);
 }

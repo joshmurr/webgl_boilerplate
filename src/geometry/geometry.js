@@ -12,6 +12,8 @@ export default class Geometry {
         this._indices = [];
         this._normals = [];
         this._colors = [];
+        this._buffers = [];
+        this._VAOs = [];
 
         this._textures = {};
     }
@@ -128,7 +130,7 @@ export default class Geometry {
     }
 
     get VAO(){
-        return this._VAO;
+        return this._VAOs[0];
     }
 
     get uniforms(){

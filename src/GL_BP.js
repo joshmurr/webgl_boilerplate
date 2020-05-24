@@ -34,7 +34,7 @@ export default class GL_BP {
                     enable : [],
                     disable : [],
                     framebuffer : ,
-                    
+
                 }
             }
         }];
@@ -116,18 +116,18 @@ export default class GL_BP {
             // textures : [],
             uniformNeedsUpdate : false,
             globalUniforms : {},
-                // u_ProjectionMatrix : {
-                    // type        : 'mat4',
-                    // uniformType : 'uniformMatrix4fv',
-                    // value       : this._projectionMat,
-                    // location    : this.gl.getUniformLocation(shaderProgram, 'u_ProjectionMatrix')
-                // },
-                // u_ViewMatrix : {
-                    // type        : 'mat4',
-                    // uniformType : 'uniformMatrix4fv',
-                    // value       : this._viewMat,
-                    // location    : this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
-                // },
+            // u_ProjectionMatrix : {
+            // type        : 'mat4',
+            // uniformType : 'uniformMatrix4fv',
+            // value       : this._projectionMat,
+            // location    : this.gl.getUniformLocation(shaderProgram, 'u_ProjectionMatrix')
+            // },
+            // u_ViewMatrix : {
+            // type        : 'mat4',
+            // uniformType : 'uniformMatrix4fv',
+            // value       : this._viewMat,
+            // location    : this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
+            // },
             // },
         }
 
@@ -135,33 +135,55 @@ export default class GL_BP {
 
     initProgramUniforms(_program, _uniforms){
         let globalUniforms = this._programs[_program].globalUniforms;
+        const shaderProgram = this._programs[_program].shader;
         for(const uniform of _uniforms){
             switch(uniform){
                 case 'u_TimeDelta' : {
                     this._programs[_program].uniformNeedsUpdate = true;
-                    // globalUniforms['u_TimeDelta'] = {
-                        // type        : 'float',
-                        // uniformType : 'uniform1f',
-                        // value       : this._deltaTime,
-                        // location    : this.gl.getUniformLocation(_program, 'u_TimeDelta')
-                    // };
-                    // Object.assign(globalUniforms,this.u_TimeDelta(this._programs[_program].shader));
-                    globalUniforms['u_TimeDelta'] = this.u_TimeDelta(this._programs[_program].shader);
+                    globalUniforms['u_TimeDelta'] = {
+                        type        : 'float',
+                        uniformType : 'uniform1f',
+                        value       : this._deltaTime / 1000.0,
+                        location    : this.gl.getUniformLocation(shaderProgram, 'u_TimeDelta')
+                    };
+                    // globalUniforms['u_TimeDelta'] = this.u_TimeDelta(this._programs[_program].shader);
                     break;
                 }
                 case 'u_TotalTime' : {
                     this._programs[_program].uniformNeedsUpdate = true;
-                    // Object.assign(globalUniforms,this.u_TotalTime(this._programs[_program].shader));
-                    // globalUniforms.push(this.u_TotalTime(this._programs[_program].shader));
-                    globalUniforms['u_TotalTime'] = this.u_TotalTime(this._programs[_program].shader);
+                    globalUniforms['u_TotalTime'] = {
+                        type        : 'float',
+                        uniformType : 'uniform1f',
+                        value       : this._time,
+                        location    : this.gl.getUniformLocation(shaderProgram, 'u_TotalTime')
+                    };
+                    // globalUniforms['u_TotalTime'] = this.u_TotalTime(this._programs[_program].shader);
+                    break;
+                }
+                case 'u_ProjectionMatrix' : {
+                    globalUniforms['u_ProjectionMatrix'] = {
+                        type        : 'mat4',
+                        uniformType : 'uniformMatrix4fv',
+                        value       : this._projectionMat,
+                        location    : this.gl.getUniformLocation(shaderProgram, 'u_ProjectionMatrix')
+                    };
+                    break;
+                }
+                case 'u_ViewMatrix' : {
+                    globalUniforms['u_ViewMatrix'] = {
+                        type        : 'mat4',
+                        uniformType : 'uniformMatrix4fv',
+                        value       : this._viewMat,
+                        location    : this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
+                    };
                     break;
                 }
             }
         }
         // const numUniforms = this.gl.getProgramParameter(this._programs[_program].shader, this.gl.ACTIVE_UNIFORMS);
         // for (let i = 0; i < numUniforms; ++i) {
-            // const info = this.gl.getActiveUniform(this._programs[_program].shader, i);
-            // console.log('name:', info.name, 'type:', info.type, 'size:', info.size);
+        // const info = this.gl.getActiveUniform(this._programs[_program].shader, i);
+        // console.log('name:', info.name, 'type:', info.type, 'size:', info.size);
         // }
         // console.log(this._programs[_program].globalUniforms);
         // console.log(this.u_TimeDelta(this._programs[_program].shader));
@@ -258,11 +280,22 @@ export default class GL_BP {
         for(const uniform in _uniforms){
             if(_uniforms.hasOwnProperty(uniform)){
                 const uniform_desc = _uniforms[uniform];
-                this.gl[uniform_desc.uniformType](
-                    uniform_desc.location,
-                    // false,
-                    uniform_desc.value,
-                );
+                switch(uniform_desc.type){
+                    case 'mat4' : {
+                        this.gl[uniform_desc.uniformType](
+                            uniform_desc.location,
+                            false,
+                            uniform_desc.value,
+                        );
+                        break;
+                    }
+                    default : {
+                        this.gl[uniform_desc.uniformType](
+                            uniform_desc.location,
+                            uniform_desc.value,
+                        );
+                    }
+                }
             }
         }
     }
@@ -307,8 +340,8 @@ export default class GL_BP {
         // --------------------------------------
 
         // VIEW SETTINGS ------------------------
-        this.gl.viewport(0, 0, 
-            _viewPort[0] || this.gl.canvas.width, 
+        this.gl.viewport(0, 0,
+            _viewPort[0] || this.gl.canvas.width,
             _viewPort[1] || this.gl.canvas.height);
 
         if(!_viewPort[0] && !_viewPort[1]){
@@ -316,11 +349,11 @@ export default class GL_BP {
             this.gl.clearDepth(1.0);
 
             this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-             // this.gl.enable(this.gl.BLEND);
-              // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+            // this.gl.enable(this.gl.BLEND);
+            // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
-            // this.gl.enable(this.gl.CULL_FACE);
-            // this.gl.enable(this.gl.DEPTH_TEST);
+            this.gl.enable(this.gl.CULL_FACE);
+            this.gl.enable(this.gl.DEPTH_TEST);
         }
         // --------------------------------------
 
@@ -329,12 +362,9 @@ export default class GL_BP {
                 // const program_desc = _selectedProgram === null ? this._programs[program] : this._programs[_selectedProgram];
                 const program_desc = this._programs[program];
 
-                // console.log(program_desc);
-
                 if(program_desc.geometry.length < 1) continue;
 
                 this.gl.useProgram(program_desc.shader);
-                // console.log(program_desc);
 
                 if(Object.keys(program_desc.globalUniforms).length > 0){
                     if(program_desc.uniformNeedsUpdate) this.updateGlobalUniforms(program_desc.globalUniforms);
@@ -346,24 +376,27 @@ export default class GL_BP {
                         geom.step(this.gl, this._deltaTime);
                         continue;
                     } /* else { */
-                        // geom.draw(this.gl);
-                        // continue;
+                    // geom.draw(this.gl);
+                    // continue;
                     /* } */
                     this.gl.bindVertexArray(geom.VAO);
                     // geom.updateModelMatrix(this._time);
-                    // geom.setUniforms(program);
+                    geom.setUniforms(program);
 
-                    switch(program_desc.mode){ 
+                    // console.log(this.gl.getParameter(this.gl.ARRAY_BUFFER_BINDING));
+                    console.log(this.gl.getVertexAttrib(0, this.gl.VERTEX_ATTRIB_ARRAY_STRIDE));
+                    // console.log(this.gl.getParameter(this.gl.ELEMENT_ARRAY_BUFFER_BINDING));
+
+
+                    switch(program_desc.mode){
                         case 'POINTS' : {
                             // POINTS
-                            // console.log(this.gl.getProgramInfoLog(program_desc.shader));
-                            // console.log(geom.numVertices);
                             this.gl.drawArrays(this.gl[program_desc.mode], 0, geom.numVertices);
                             break;
-                        } 
+                        }
                         case 1 :
                             // LINES
-                        case 2 : 
+                        case 2 :
                             // LINE_LOOP
                         case 5 :
                             // TRIANGLE_STRIP
@@ -376,9 +409,9 @@ export default class GL_BP {
                 }
 
                 // Empty Buffers
-                // this.gl.bindVertexArray(null);
-                // this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
-                // this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
+                this.gl.bindVertexArray(null);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+                this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
             }
             // If a _selectedProgram is passed, skip the rest
             // if(_selectedProgram) continue;
@@ -392,11 +425,11 @@ export default class GL_BP {
         // Set texture to one blue dot while it loads below
         this.gl.texImage2D(
             this.gl.TEXTURE_2D,
-            0, gl.RGBA, 
-            1, 
-            1, 
-            0, 
-            this.gl.RGBA, 
+            0, gl.RGBA,
+            1,
+            1,
+            0,
+            this.gl.RGBA,
             this.gl.UNSIGNED_BYTE,
             new Uint8Array([0, 0, 255, 255])
         );
@@ -408,13 +441,13 @@ export default class GL_BP {
             // Now that the image has loaded make copy it to the texture.
             this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
             this.gl.texImage2D(
-                this.gl.TEXTURE_2D, 
-                0, 
-                this.gl.RGBA, 
+                this.gl.TEXTURE_2D,
+                0,
                 this.gl.RGBA,
-                this.gl.UNSIGNED_BYTE, 
+                this.gl.RGBA,
+                this.gl.UNSIGNED_BYTE,
                 image
-        );
+            );
             this.gl.generateMipmap(gl.TEXTURE_2D);
         });
 
@@ -510,8 +543,11 @@ export default class GL_BP {
         return new PointCloud(this.gl, numPoints, emptyData);
     }
 
-    Icosahedron(){
-        return new Icosahedron(this.gl);
+    Icosahedron(_program){
+        const Icos = new Icosahedron(this.gl);
+        this._programs[_program].geometry.push(Icos);
+        Icos.linkProgram(this._programs[_program].shader);
+        return Icos;
     }
 
     ParticleSystem(_updateProgram, _renderProgram, _numParticles){
