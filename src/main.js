@@ -5,9 +5,9 @@ import GL_BP from './GL_BP';
 // var textureFrag = require('./glsl/textureFrag.glsl');
 
 
-// window.addEventListener("load", particles());
+window.addEventListener("load", particles());
 // window.addEventListener("load", pointSphere());
-window.addEventListener("load", icosahedron());
+// window.addEventListener("load", icosahedron());
 
 function particles() {
     const updateVert = require('./glsl/TFBparticles/particle_update_vert.glsl');
@@ -35,15 +35,18 @@ function particles() {
     // GL.linkGeometry('update', _geometry);
     GL.initProgramUniforms('update', [
         'u_TimeDelta',
+    ]
+    );
+    GL.initProgramUniforms('render', [
         'u_ProjectionMatrix',
         'u_ViewMatrix']
     );
-    GL.initGeometryUniforms('update', [ 'u_ModelMatrix' ]);
+    GL.cameraPosition = [0, 0, 2];
+    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
     ParticleSystem.rotate = {s:0.001, a:[0,1,0]};
     GL.setDrawParams('render', {
         clearColor : [0.0, 0.0, 1.0, 1.0],
-        clearDepth : [1.0],
-        enable     : ['BLEND'], // if enable is changed, it will override defaults
+        enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
         blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
     });
 
@@ -101,21 +104,18 @@ function pointSphere() {
     GL.init(512,512);
 
     GL.initShaderProgram('points', pointsVert, pointsFrag, null, 'POINTS');
-    GL.cameraPosition = [0, 0, 3];
     const points = GL.RandomPointSphere('points', 1000);
     points.rotate = {s:0.001, a:[0,1,0]};
     GL.initProgramUniforms('points', [
-        // 'u_TimeDelta',
         'u_ProjectionMatrix',
         'u_ViewMatrix',
     ]);
+    GL.cameraPosition = [0, 0, 3];
 
     GL.setDrawParams('points', {
         clearColor : [0.9, 0.9, 1.0, 1.0],
         clearDepth : [1.0],
     });
-
-    console.log(GL.programs);
 
     function draw(now) {
         GL.draw(now);

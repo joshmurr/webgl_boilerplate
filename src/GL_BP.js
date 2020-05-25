@@ -355,7 +355,7 @@ export default class GL_BP {
                         } else if(param === 'blendFunc'){
                             this.gl[param](this.gl[values[0]], this.gl[values[1]]);
                         } else if(param === 'clear'){
-                            /* CLEAR_BUFFER_BIT | DEPTH_BUFFER_BIT */
+                            /* COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT */
                             let clear = 0;
                             for(const val of values) clear |= this.gl[val];
                             this.gl[param](clear);
