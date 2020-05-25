@@ -408,6 +408,11 @@ export default class GL_BP {
                         geom.setUniforms();
                         // debugger;
                     }
+                    // const numUniforms = this.gl.getProgramParameter(program_desc.shader, this.gl.ACTIVE_UNIFORMS);
+                    // for (let i = 0; i < numUniforms; ++i) {
+                          // const info = this.gl.getActiveUniform(program_desc.shader, i);
+                          // console.log('name:', info.name, 'type:', info.type, 'size:', info.size);
+                    // }
 
                     /* DRAW */
                     switch(program_desc.mode){
