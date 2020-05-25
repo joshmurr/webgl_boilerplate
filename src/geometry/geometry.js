@@ -16,6 +16,7 @@ export default class Geometry {
         this._buffers = [];
         this._VAOs = [];
 
+        this._uniforms = {};
         this._textures = {};
     }
 
@@ -53,7 +54,7 @@ export default class Geometry {
         }
         // Empty Buffers:
         // !Important to unbind the VAO first.
-        this.gl.bindVertexArray(null); 
+        this.gl.bindVertexArray(null);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
@@ -75,27 +76,34 @@ export default class Geometry {
         }
     }
 
-
-    linkUniforms(_program, _textures){
-        // UNIFORMS
-        this._uniforms = {
-            u_ModelMatrix : {
-                value    : mat4.create(),
-                type     : 'uniformMatrix4fv',
-                uniformType : 'mat4',
-                programName : null,
-                location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
-            },
-        }
-        // Add textures into uniforms
-        if(_textures){
-            for(const tex of _textures){
-                Object.assign(this._uniforms, tex);
-            }
-        }
+    linkUniforms(_arg1, _aarg2){
+        console.error("'linkUniforms()' is deprecated, use 'initUniforms()'");
     }
 
-    setUniforms(_programName=null){
+    initUniforms(_shaderProgram, _uniforms){
+        for(const uniform of _uniforms){
+            switch(uniform){
+                case 'u_ModelMatrix' : {
+                    this._uniforms['u_ModelMatrix'] = {
+                        // type        : 'mat4',
+                        type        : 'uniformMatrix4fv',
+                        value       : mat4.create(), //this._projectionMat,
+                        // programName : null,
+                        location    : this.gl.getUniformLocation(_shaderProgram, 'u_ProjectionMatrix')
+                    };
+                    break;
+                }
+            }
+        }
+        console.log(this._uniforms);
+        // if(_textures){
+        // for(const tex of _textures){
+        // Object.assign(this._uniforms, tex);
+        // }
+        // }
+    }
+
+    setUniforms(){
         for(const uniform in this._uniforms){
             if(this._uniforms.hasOwnProperty(uniform)){
                 const uniform_desc = this._uniforms[uniform];

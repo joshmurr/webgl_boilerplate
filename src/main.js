@@ -6,8 +6,8 @@ import GL_BP from './GL_BP';
 
 
 // window.addEventListener("load", particles());
-window.addEventListener("load", pointSphere());
-// window.addEventListener("load", icosahedron());
+// window.addEventListener("load", pointSphere());
+window.addEventListener("load", icosahedron());
 
 function particles() {
     const updateVert = require('./glsl/TFBparticles/particle_update_vert.glsl');
@@ -31,14 +31,20 @@ function particles() {
     // GL.globalUniforms([ LIST OF GLOBAL UNIFORMS ]);
     GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
     GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
-    const ParticleSystem = GL.ParticleSystem('update', 'render', 1000);
+    const ParticleSystem = GL.ParticleSystem('update', 'render', 100);
     // GL.linkGeometry('update', _geometry);
-    GL.initProgramUniforms('update', ['u_TimeDelta']);
+    GL.initProgramUniforms('update', [
+        'u_TimeDelta',
+        'u_ProjectionMatrix',
+        'u_ViewMatrix']
+    );
+    GL.initGeometryUniforms('update', [ 'u_ModelMatrix' ]);
+    ParticleSystem.rotate = {s:0.001, a:[0,1,0]};
     GL.setDrawParams('render', {
         clearColor : [0.0, 0.0, 1.0, 1.0],
         clearDepth : [1.0],
         enable     : ['BLEND'], // if enable is changed, it will override defaults
-
+        blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
     });
 
     // console.log(GL.programs);
@@ -59,23 +65,23 @@ function icosahedron() {
     const facesVert = require('./glsl/facesVert.glsl');
     const facesFrag = require('./glsl/facesFrag.glsl');
     const GL = new GL_BP();
-    // Create canvas of specified size and setup WebGL instance
     GL.init(512,512);
 
     GL.initShaderProgram('faces', facesVert, facesFrag, null, 'TRIANGLES');
+
     GL.cameraPosition = [0, 0, 3];
     const icos = GL.Icosahedron('faces');
-    icos.rotate = {s:0.001, a:[0,1,0]};
-    // GL.linkGeometry('update', _geometry);
+    // icos.rotate = {s:0.001, a:[0,1,0]};
     GL.initProgramUniforms('faces', [
-        'u_TimeDelta', 
         'u_ProjectionMatrix',
         'u_ViewMatrix',
     ]);
     GL.setDrawParams('faces', {
-        clearColor : [1.0, 1.0, 1.0, 1.0],
+        clearColor : [0.8, 1.0, 1.0, 1.0],
         clearDepth : [1.0],
     });
+    GL.initGeometryUniforms('faces', [ 'u_ModelMatrix' ]);
+    console.log(GL.programs);
 
     function draw(now) {
         GL.draw(now);
