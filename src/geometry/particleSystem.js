@@ -186,18 +186,19 @@ export default class ParticleSystem extends Geometry {
         _gl.bindBufferBase(_gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
     }
 
+    /*
     draw(_gl){
-        /* Now, we draw the particle system. Note that we're actually
-         *      drawing the data from the "read" buffer, not the "write" buffer
-         *           that we've written the updated data to. */
+        // Drawing the data from the "read" buffer, not the "write" buffer
+        // that we've written the updated data to.
         // _gl.bindVertexArray(this._VAOs[this.read + 2]);
         _gl.bindVertexArray(this._VAOs[this.read + 2]);
         _gl.drawArrays(_gl.POINTS, 0, this._bornParticles);
 
-        /* Finally, we swap read and write buffers. The updated this will be
-         *      rendered on the next frame. */
+        // Finally, we swap read and write buffers. The updated this will be
+        // rendered on the next frame.
         const tmp = this.read;
         this.read = this.write;
         this.write = tmp;
     }
+    */
 }

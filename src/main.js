@@ -1,15 +1,13 @@
 import GL_BP from './GL_BP';
 // import GameOfLife from './gameoflife/gameoflife.js';
-// var pointsVert = require('./particles/pointsVert.glsl');
-// var pointsFrag = require('./particles/pointsFrag.glsl');
-// var basicFrag = require('./glsl/basicFrag.glsl');
 
 // var textureVert = require('./glsl/textureVert.glsl');
 // var textureFrag = require('./glsl/textureFrag.glsl');
 
 
 // window.addEventListener("load", particles());
-window.addEventListener("load", icosahedron());
+window.addEventListener("load", pointSphere());
+// window.addEventListener("load", icosahedron());
 
 function particles() {
     const updateVert = require('./glsl/TFBparticles/particle_update_vert.glsl');
@@ -36,6 +34,14 @@ function particles() {
     const ParticleSystem = GL.ParticleSystem('update', 'render', 1000);
     // GL.linkGeometry('update', _geometry);
     GL.initProgramUniforms('update', ['u_TimeDelta']);
+    GL.setDrawParams('render', {
+        clearColor : [0.0, 0.0, 1.0, 1.0],
+        clearDepth : [1.0],
+        enable     : ['BLEND'], // if enable is changed, it will override defaults
+
+    });
+
+    // console.log(GL.programs);
 
     function draw(now) {
         GL.draw(now);
@@ -57,13 +63,51 @@ function icosahedron() {
     GL.init(512,512);
 
     GL.initShaderProgram('faces', facesVert, facesFrag, null, 'TRIANGLES');
+    GL.cameraPosition = [0, 0, 3];
     const icos = GL.Icosahedron('faces');
+    icos.rotate = {s:0.001, a:[0,1,0]};
     // GL.linkGeometry('update', _geometry);
     GL.initProgramUniforms('faces', [
         'u_TimeDelta', 
         'u_ProjectionMatrix',
         'u_ViewMatrix',
     ]);
+    GL.setDrawParams('faces', {
+        clearColor : [1.0, 1.0, 1.0, 1.0],
+        clearDepth : [1.0],
+    });
+
+    function draw(now) {
+        GL.draw(now);
+        window.requestAnimationFrame(draw);
+    }
+    window.requestAnimationFrame(draw);
+};
+
+function pointSphere() {
+    const pointsVert = require('./glsl/pointsVert.glsl');
+    const pointsFrag = require('./glsl/pointsFrag.glsl');
+    const basicFrag = require('./glsl/basicFrag.glsl');
+    const GL = new GL_BP();
+    // Create canvas of specified size and setup WebGL instance
+    GL.init(512,512);
+
+    GL.initShaderProgram('points', pointsVert, pointsFrag, null, 'POINTS');
+    GL.cameraPosition = [0, 0, 3];
+    const points = GL.RandomPointSphere('points', 1000);
+    points.rotate = {s:0.001, a:[0,1,0]};
+    GL.initProgramUniforms('points', [
+        // 'u_TimeDelta',
+        'u_ProjectionMatrix',
+        'u_ViewMatrix',
+    ]);
+
+    GL.setDrawParams('points', {
+        clearColor : [0.9, 0.9, 1.0, 1.0],
+        clearDepth : [1.0],
+    });
+
+    console.log(GL.programs);
 
     function draw(now) {
         GL.draw(now);

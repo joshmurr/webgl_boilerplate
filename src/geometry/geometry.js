@@ -5,6 +5,7 @@ export default class Geometry {
         this.gl = gl;
 
         this._indexedGeometry = false;
+        this._uniformsNeedsUpdate = false;
         this._translate = [0.0, 0.0, 0.0];
         this._rotation = { speed : 0, axis : [0, 0, 0]};
 
@@ -51,7 +52,8 @@ export default class Geometry {
             this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this._indices), this.gl.STATIC_DRAW);
         }
         // Empty Buffers:
-        this.gl.bindVertexArray(null);
+        // !Important to unbind the VAO first.
+        this.gl.bindVertexArray(null); 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
@@ -152,16 +154,22 @@ export default class Geometry {
         return this._translate;
     }
     set translate(loc){
+        this._uniformsNeedsUpdate = true;
         this._translate[0] = loc[0];
         this._translate[1] = loc[1];
         this._translate[2] = loc[2];
     }
     set rotate(speedAxis){
+        this._uniformsNeedsUpdate = true;
         const [s, r] = Object.values(speedAxis);
         this._rotation.speed = s;
         this._rotation.axis[0] = r[0];
         this._rotation.axis[1] = r[1];
         this._rotation.axis[2] = r[2];
+    }
+
+    get needsUpdate(){
+        return this._uniformsNeedsUpdate;
     }
 
     updateModelMatrix(_time){

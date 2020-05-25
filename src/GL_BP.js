@@ -116,6 +116,13 @@ export default class GL_BP {
             // textures : [],
             uniformNeedsUpdate : false,
             globalUniforms : {},
+            drawParams : {
+                clearColor : [0.9, 0.9, 0.9, 1.0],
+                clearDepth : [1.0],
+                clear      : ['COLOR_BUFFER_BIT', 'DEPTH_BUFFER_BIT'],
+                viewport   : [0, 0, this.gl.canvas.width, this.gl.canvas.height],
+                enable     : ['CULL_FACE', 'DEPTH_TEST'],
+            }
             // u_ProjectionMatrix : {
             // type        : 'mat4',
             // uniformType : 'uniformMatrix4fv',
@@ -134,8 +141,11 @@ export default class GL_BP {
     }
 
     initProgramUniforms(_program, _uniforms){
-        let globalUniforms = this._programs[_program].globalUniforms;
-        const shaderProgram = this._programs[_program].shader;
+        const program = this.getProgram(_program);
+        // try {
+        // let globalUniforms = this._programs[_program].globalUniforms;
+        let globalUniforms = program.globalUniforms;
+        const shaderProgram = program.shader;
         for(const uniform of _uniforms){
             switch(uniform){
                 case 'u_TimeDelta' : {
@@ -180,6 +190,12 @@ export default class GL_BP {
                 }
             }
         }
+    // }catch (err) {
+            // if (err instanceof TypeError) {
+                // console.error(`Shader Program '${_program}' is not found, did you mean: '${Object.keys(this._programs)}'?`);
+            // }
+        // }
+
         // const numUniforms = this.gl.getProgramParameter(this._programs[_program].shader, this.gl.ACTIVE_UNIFORMS);
         // for (let i = 0; i < numUniforms; ++i) {
         // const info = this.gl.getActiveUniform(this._programs[_program].shader, i);
@@ -189,22 +205,9 @@ export default class GL_BP {
         // console.log(this.u_TimeDelta(this._programs[_program].shader));
     }
 
-    u_TimeDelta(_program){
-        return {
-            type        : 'float',
-            uniformType : 'uniform1f',
-            value       : this._deltaTime / 1000.0,
-            location    : this.gl.getUniformLocation(_program, 'u_TimeDelta')
-        };
-    }
-
-    u_TotalTime(_program){
-        return {
-            type        : 'float',
-            uniformType : 'uniform1f',
-            value       : this._time,
-            location    : this.gl.getUniformLocation(_program, 'u_TotalTime')
-        };
+    setDrawParams(_program, _options){
+        const program = this.getProgram(_program);
+        Object.assign(program.drawParams, _options);
     }
 
     loadShader(type, source) {
@@ -220,26 +223,31 @@ export default class GL_BP {
         return shader;
     }
 
-    updateGlobalUniforms(_uniforms){
+    updateGlobalUniforms(_uniforms=null){
         // console.log(_uniforms);
-        for(const uniform in _uniforms){
-            if(_uniforms.hasOwnProperty(uniform)){
-                switch(uniform) {
-                    case 'u_TimeDelta' : {
-                        _uniforms[uniform].value = this._deltaTime / 1000.0;
-                        break;
-                    }
-                    case 'u_TotalTime' : {
-                        _uniforms[uniform].value = this._time / 1000.0;
-                        break;
-                    }
-                    case 'u_ProjectionMatrix' : {
-                        // this.updateProjectionMatrix(program);
-                        break;
-                    }
-                    case 'u_ViewMatrix' : {
-                        // this.updateViewMatrix(program);
-                        break;
+        for(const program in this._programs){
+            if(this._programs.hasOwnProperty(program) && this._programs[program].uniformNeedsUpdate){
+                const _uniforms = this._programs[program].globalUniforms;
+                for(const uniform in _uniforms){
+                    if(_uniforms.hasOwnProperty(uniform)){
+                        switch(uniform) {
+                            case 'u_TimeDelta' : {
+                                _uniforms[uniform].value = this._deltaTime / 1000.0;
+                                break;
+                            }
+                            case 'u_TotalTime' : {
+                                _uniforms[uniform].value = this._time / 1000.0;
+                                break;
+                            }
+                            case 'u_ProjectionMatrix' : {
+                                this.updateProjectionMatrix(program);
+                                break;
+                            }
+                            case 'u_ViewMatrix' : {
+                                this.updateViewMatrix(program);
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -327,6 +335,19 @@ export default class GL_BP {
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
 
+    getProgram(_program){
+        try{
+            const program = this._programs[_program];
+            if(!program) throw new TypeError;
+            else return program;
+        }catch (err) {
+            if (err instanceof TypeError) {
+                console.error(`Shader Program '${_program}' is not found, did you mean: '${Object.keys(this._programs)}'?`);
+            }
+        }
+    }
+
+
     draw(now, _selectedProgram=null, _viewPort=[null, null]){
         // TIME ---------------------------------
         if (this._oldTimestamp != 0) {
@@ -340,54 +361,64 @@ export default class GL_BP {
         // --------------------------------------
 
         // VIEW SETTINGS ------------------------
-        this.gl.viewport(0, 0,
-            _viewPort[0] || this.gl.canvas.width,
-            _viewPort[1] || this.gl.canvas.height);
-
-        if(!_viewPort[0] && !_viewPort[1]){
-            this.gl.clearColor(0.05, 0.05, 0.15, 1.0);
-            this.gl.clearDepth(1.0);
-
-            this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-            // this.gl.enable(this.gl.BLEND);
-            // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-
-            this.gl.enable(this.gl.CULL_FACE);
-            this.gl.enable(this.gl.DEPTH_TEST);
-        }
+        // if(!_viewPort[0] && !_viewPort[1]){ }
         // --------------------------------------
 
         for(const program in this._programs){
             if(this._programs.hasOwnProperty(program)){
                 // const program_desc = _selectedProgram === null ? this._programs[program] : this._programs[_selectedProgram];
                 const program_desc = this._programs[program];
+                /* SET DRAW PARAMETERS */
+                // this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+                // this.gl.enable(this.gl.CULL_FACE);
+                // this.gl.enable(this.gl.DEPTH_TEST);
+                // this.gl.enable(this.gl.BLEND);
+                // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+                for(const param in program_desc.drawParams){
+                    if(program_desc.drawParams.hasOwnProperty(param)){
+                        const values = program_desc.drawParams[param];
+                        if(param === 'enable'){
+                            /* ENABLE CAPS */
+                            for(const val of values) this.gl[param](this.gl[val]);
+                        } else if(param === 'clear'){
+                            /* CLEAR_BUFFER_BIT | DEPTH_BUFFER_BIT */
+                            let clear = 0;
+                            for(const val of values) clear |= this.gl[val];
+                            this.gl[param](clear);
+                        } else {
+                            this.gl[param](...values);
+                        }
+                    }
+                }
 
                 if(program_desc.geometry.length < 1) continue;
 
+                /* USE PROGRAM */
                 this.gl.useProgram(program_desc.shader);
 
+                /* UPDATE AND SET GLOBAL UNIFORMS */
                 if(Object.keys(program_desc.globalUniforms).length > 0){
-                    if(program_desc.uniformNeedsUpdate) this.updateGlobalUniforms(program_desc.globalUniforms);
+                    if(program_desc.uniformNeedsUpdate) this.updateGlobalUniforms();
                     this.setGlobalUniforms(program_desc.globalUniforms);
                 }
 
                 for(const geom of program_desc.geometry){
+                    /* TRANSFORM FEEDBACK */
                     if(program_desc.transformFeedback) {
                         geom.step(this.gl, this._deltaTime);
                         continue;
-                    } /* else { */
-                    // geom.draw(this.gl);
-                    // continue;
-                    /* } */
+                    }
+
+                    /* BIND VAO */
                     this.gl.bindVertexArray(geom.VAO);
-                    // geom.updateModelMatrix(this._time);
-                    geom.setUniforms(program);
 
-                    // console.log(this.gl.getParameter(this.gl.ARRAY_BUFFER_BINDING));
-                    // console.log(this.gl.getVertexAttrib(0, this.gl.VERTEX_ATTRIB_ARRAY_TYPE));
-                    // console.log(this.gl.getParameter(this.gl.ELEMENT_ARRAY_BUFFER_BINDING));
+                    /* UPDATE AND SET GEOM UNIFORMS */
+                    if(geom.needsUpdate) {
+                        geom.updateModelMatrix(this._time);
+                        geom.setUniforms(program);
+                    }
 
-
+                    /* DRAW */
                     switch(program_desc.mode){
                         case 'POINTS' : {
                             this.gl.drawArrays(this.gl[program_desc.mode], 0, geom.numVertices);
@@ -400,7 +431,7 @@ export default class GL_BP {
 
                 }
 
-                // Empty Buffers
+                /* EMPTY BUFFERS */
                 this.gl.bindVertexArray(null);
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
                 this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
@@ -508,6 +539,7 @@ export default class GL_BP {
 
     set cameraPosition(loc){
         this._position = vec3.fromValues(...loc);
+        // this.updateViewMatrix();
         this.updateGlobalUniforms();
     }
 
@@ -527,8 +559,11 @@ export default class GL_BP {
         return new Cube(this.gl, type);
     }
 
-    RandomPointSphere(numPoints){
-        return new RandomPointSphere(this.gl, numPoints);
+    RandomPointSphere(_program, numPoints){
+        const Points = new RandomPointSphere(this.gl, numPoints);
+        this._programs[_program].geometry.push(Points);
+        Points.linkProgram(this._programs[_program].shader);
+        return Points;
     }
 
     PointCloud(numPoints, emptyData){
