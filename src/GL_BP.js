@@ -54,7 +54,7 @@ export default class GL_BP {
         this._projectionMat = mat4.create();
         // View
         this._viewMat = mat4.create();
-        this._position = vec3.fromValues(0, 0.5, 5);
+        this._position = vec3.fromValues(0, 0, 2);
         this._target = vec3.fromValues(0, 0, 0);
         this._up = vec3.fromValues(0, 1, 0);
     }
@@ -173,6 +173,7 @@ export default class GL_BP {
                 }
             }
         }
+        this.updateGlobalUniforms(globalUniforms);
     }
 
     initGeometryUniforms(_program, _uniforms){
@@ -182,24 +183,6 @@ export default class GL_BP {
         for(const geom of program.geometry){
             geom.initUniforms(shaderProgram, _uniforms);
         }
-    }
-
-    setDrawParams(_program, _options){
-        const program = this.getProgram(_program);
-        Object.assign(program.drawParams, _options);
-    }
-
-    loadShader(type, source) {
-        const shader = this.gl.createShader(type);
-        this.gl.shaderSource(shader, source);
-        this.gl.compileShader(shader);
-
-        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-            alert('An error occurred compiling the shaders: ' + this.gl.getShaderInfoLog(shader));
-            this.gl.deleteShader(shader);
-            return null;
-        }
-        return shader;
     }
 
     updateAllGlobalUniforms(){
@@ -235,36 +218,6 @@ export default class GL_BP {
         }
     }
 
-    updateProjectionMatrix(_program){
-        // this._projectionMat = mat4.create();
-        mat4.perspective(
-            this._programs[_program].globalUniforms.u_ProjectionMatrix.value,
-            this._fieldOfView, this._aspect, this._zNear, this._zFar);
-    }
-
-    updateViewMatrix(_program){
-        // this._viewMat = mat4.create();
-        mat4.lookAt(
-            this._programs[_program].globaluniforms.u_viewmatrix.value,
-            this._position, this._target, this._up);
-    }
-
-    linkProgram(_program, _geometry, _textureName=null){
-        this._programs[_program].geometry.push(_geometry);
-
-        const geometryTex = {};
-        if(_textureName){
-            // Update textures with program location
-            // Textures are stored in the GL_BP object
-            const texture = this._textures[_textureName];
-            texture.location = this.gl.getUniformLocation(this._programs[_program].shader, texture.uniformName);
-
-            // Textures are then passed along to get put into the geometry specific uniforms
-            geometryTex[texture.uniformName] = texture;
-        }
-        _geometry.linkProgram(this._programs[_program].shader, [geometryTex]);
-    }
-
     setGlobalUniforms(_uniforms){
         for(const uniform in _uniforms){
             if(_uniforms.hasOwnProperty(uniform)){
@@ -288,6 +241,56 @@ export default class GL_BP {
             }
         }
     }
+
+    updateProjectionMatrix(_program){
+        // this._projectionMat = mat4.create();
+        mat4.perspective(
+            this._programs[_program].globalUniforms.u_ProjectionMatrix.value,
+            this._fieldOfView, this._aspect, this._zNear, this._zFar);
+    }
+
+    updateViewMatrix(_program){
+        // this._viewMat = mat4.create();
+        mat4.lookAt(
+            this._programs[_program].globaluniforms.u_viewmatrix.value,
+            this._position, this._target, this._up);
+    }
+
+    setDrawParams(_program, _options){
+        const program = this.getProgram(_program);
+        Object.assign(program.drawParams, _options);
+    }
+
+    loadShader(type, source) {
+        const shader = this.gl.createShader(type);
+        this.gl.shaderSource(shader, source);
+        this.gl.compileShader(shader);
+
+        if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+            alert('An error occurred compiling the shaders: ' + this.gl.getShaderInfoLog(shader));
+            this.gl.deleteShader(shader);
+            return null;
+        }
+        return shader;
+    }
+
+
+    linkProgram(_program, _geometry, _textureName=null){
+        this._programs[_program].geometry.push(_geometry);
+
+        const geometryTex = {};
+        if(_textureName){
+            // Update textures with program location
+            // Textures are stored in the GL_BP object
+            const texture = this._textures[_textureName];
+            texture.location = this.gl.getUniformLocation(this._programs[_program].shader, texture.uniformName);
+
+            // Textures are then passed along to get put into the geometry specific uniforms
+            geometryTex[texture.uniformName] = texture;
+        }
+        _geometry.linkProgram(this._programs[_program].shader, [geometryTex]);
+    }
+
 
     framebuffer(_name){
         // Create empty framebuffer
@@ -391,8 +394,8 @@ export default class GL_BP {
                     /* UPDATE AND SET GEOM UNIFORMS */
                     if(geom.needsUpdate) {
                         geom.updateModelMatrix(this._time);
-                        geom.setUniforms();
                     }
+                    geom.setUniforms();
                     // const numUniforms = this.gl.getProgramParameter(program_desc.shader, this.gl.ACTIVE_UNIFORMS);
                     // for (let i = 0; i < numUniforms; ++i) {
                           // const info = this.gl.getActiveUniform(program_desc.shader, i);
@@ -557,8 +560,8 @@ export default class GL_BP {
         return Icos;
     }
 
-    ParticleSystem(_updateProgram, _renderProgram, _numParticles){
-        const PS = new ParticleSystem(this.gl, _numParticles);
+    ParticleSystem(_updateProgram, _renderProgram, _options=null){
+        const PS = new ParticleSystem(this.gl, _options);
         this._programs[_updateProgram].geometry.push(PS);
         this._programs[_renderProgram].geometry.push(PS);
         PS.linkProgram(

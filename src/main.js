@@ -5,63 +5,89 @@ import GL_BP from './GL_BP';
 // var textureFrag = require('./glsl/textureFrag.glsl');
 
 
-window.addEventListener("load", particles());
+window.addEventListener("load", particles3D());
+// window.addEventListener("load", simpleParticles());
 // window.addEventListener("load", pointSphere());
 // window.addEventListener("load", icosahedron());
 
-function particles() {
-    const updateVert = require('./glsl/TFBparticles/particle_update_vert.glsl');
-    const updateFrag = require('./glsl/TFBparticles/passthru_frag.glsl');
-    const renderVert = require('./glsl/TFBparticles/particle_render_vert.glsl');
-    const renderFrag = require('./glsl/TFBparticles/particle_render_frag.glsl');
+function particles3D(){
+    const updateVert = require('./glsl/particles3d/particle_update_vert.glsl');
+    const updateFrag = require('./glsl/particles3d/passthru_frag.glsl');
+    const renderVert = require('./glsl/particles3d/particle_render_vert.glsl');
+    const renderFrag = require('./glsl/particles3d/particle_render_frag.glsl');
 
     const GL = new GL_BP();
-    // Create canvas of specified size and setup WebGL instance
     GL.init(512,512);
 
     const transformFeedbackVaryings = [
         "v_Position",
+        "v_Velocity",
         "v_Age",
         "v_Life",
-        "v_Velocity",
     ];
 
-    // GL.initShaderProgram('update', updateVert, updateFrag, 'POINTS', transformFeedbackVaryings);
-
-    // GL.globalUniforms([ LIST OF GLOBAL UNIFORMS ]);
     GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
     GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
-    const ParticleSystem = GL.ParticleSystem('update', 'render', 100);
-    // GL.linkGeometry('update', _geometry);
-    GL.initProgramUniforms('update', [
-        'u_TimeDelta',
-    ]
-    );
-    GL.initProgramUniforms('render', [
-        'u_ProjectionMatrix',
-        'u_ViewMatrix']
-    );
-    GL.cameraPosition = [0, 0, 2];
-    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
-    ParticleSystem.rotate = {s:0.001, a:[0,1,0]};
+
+    GL.initProgramUniforms('update', [ 'u_TimeDelta' ]);
+    GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
+
     GL.setDrawParams('render', {
         clearColor : [0.0, 0.0, 1.0, 1.0],
         enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
         blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
     });
 
-    // console.log(GL.programs);
+    const opts = { dimensions : 3 };
+    const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
+    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
 
     function draw(now) {
         GL.draw(now);
         window.requestAnimationFrame(draw);
     }
     window.requestAnimationFrame(draw);
+}
+// -------------------------------------------------------------------------------
 
-    // GL.canvas.onmousemove = function(e) {
-    // const x = 2.0 * (e.pageX - this.offsetLeft)/this.width - 1.0;
-    // const y = -(2.0 * (e.pageY - this.offsetTop)/this.height - 1.0);
-    // };
+// -------------------------------------------------------------------------------
+function simpleParticles() {
+    const updateVert = require('./glsl/TFBparticles/particle_update_vert.glsl');
+    const updateFrag = require('./glsl/TFBparticles/passthru_frag.glsl');
+    const renderVert = require('./glsl/TFBparticles/particle_render_vert.glsl');
+    const renderFrag = require('./glsl/TFBparticles/particle_render_frag.glsl');
+
+    const GL = new GL_BP();
+    GL.init(512,512);
+
+    const transformFeedbackVaryings = [
+        "v_Position",
+        "v_Velocity",
+        "v_Age",
+        "v_Life",
+    ];
+
+    GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
+    GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
+
+    GL.initProgramUniforms('update', [ 'u_TimeDelta' ]);
+    GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
+
+    GL.setDrawParams('render', {
+        clearColor : [0.0, 0.0, 1.0, 1.0],
+        enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
+        blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
+    });
+
+    const opts = { numParticles : 200 };
+    const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
+    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
+
+    function draw(now) {
+        GL.draw(now);
+        window.requestAnimationFrame(draw);
+    }
+    window.requestAnimationFrame(draw);
 };
 
 function icosahedron() {

@@ -2,28 +2,37 @@ import Geometry from "./geometry.js";
 import { mat4 } from "gl-matrix";
 
 export default class ParticleSystem extends Geometry {
-    constructor(gl, _numParticles){
+    constructor(gl, _options=null){
         super(gl);
-        this._numParticles = _numParticles;
-        const min_age = 1.0;
-        const max_age = 1.5;
-        for(let i=0; i<this._numParticles; ++i){
+
+        this._options = {
+            dimensions     : 2,
+            numParticles   : 100,
+            birthRate      : 0.5,
+            lifeRange      : [1.01, 1.15],
+            directionRange : [Math.PI/2 - 0.5, Math.PI/2 + 0.5], // -PI to PI
+            speedRange     : [0.5, 1.0],
+            gravity        : [0.0, -0.8],
+        };
+
+        if(_options) Object.assign(this._options, _options);
+
+        for(let i=0; i<this._options.numParticles; ++i){
             // Position
             // data.push(0.0, 0.0);
-            this._verts.push(Math.random(), Math.random());
+            for(let i=0; i<this._options.dimensions; ++i) this._verts.push(Math.random());
+            // Velocity
+            for(let i=0; i<this._options.dimensions; ++i) this._verts.push(0);
 
             // Life
-            let life = min_age + Math.random() * (max_age - min_age);
+            let life = this._options.lifeRange[0] + Math.random() * 
+                (this._options.lifeRange[1] - this._options.lifeRange[0]);
             this._verts.push(life+1, life);
 
-            // Velocity
-            this._verts.push(0.0, 0.0);
         }
 
         this._read  = 0;
         this._write = 1;
-
-        this._birthRate = 0.5;
         this._bornParticles = 0;
     }
 
@@ -87,6 +96,12 @@ export default class ParticleSystem extends Geometry {
                 type: this.gl.FLOAT,
                 size: 4,
             },
+            i_Velocity: {
+                location: this.gl.getAttribLocation(_updateProgram, "i_Velocity"),
+                num_components: 2,
+                type: this.gl.FLOAT,
+                size: 4,
+            },
             i_Age: {
                 location: this.gl.getAttribLocation(_updateProgram, "i_Age"),
                 num_components: 1,
@@ -96,12 +111,6 @@ export default class ParticleSystem extends Geometry {
             i_Life: {
                 location: this.gl.getAttribLocation(_updateProgram, "i_Life"),
                 num_components: 1,
-                type: this.gl.FLOAT,
-                size: 4,
-            },
-            i_Velocity: {
-                location: this.gl.getAttribLocation(_updateProgram, "i_Velocity"),
-                num_components: 2,
                 type: this.gl.FLOAT,
                 size: 4,
             },
@@ -161,9 +170,9 @@ export default class ParticleSystem extends Geometry {
     step(_gl, _dT){
         // console.log(`State -> read:${this._read} write:${this._write}`);
         const num_part = this._bornParticles;
-        if (this._bornParticles < this._numParticles) {
-            this._bornParticles = Math.min(this._numParticles,
-                Math.floor(this._bornParticles + this._birthRate * _dT));
+        if (this._bornParticles < this._options.numParticles) {
+            this._bornParticles = Math.min(this._options.numParticles,
+                Math.floor(this._bornParticles + this._options.birthRate * _dT));
         }
 
         _gl.bindVertexArray(this._VAOs[this._read]);
