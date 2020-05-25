@@ -123,19 +123,6 @@ export default class GL_BP {
                 viewport   : [0, 0, this.gl.canvas.width, this.gl.canvas.height],
                 enable     : ['CULL_FACE', 'DEPTH_TEST'],
             }
-            // u_ProjectionMatrix : {
-            // type        : 'mat4',
-            // uniformType : 'uniformMatrix4fv',
-            // value       : this._projectionMat,
-            // location    : this.gl.getUniformLocation(shaderProgram, 'u_ProjectionMatrix')
-            // },
-            // u_ViewMatrix : {
-            // type        : 'mat4',
-            // uniformType : 'uniformMatrix4fv',
-            // value       : this._viewMat,
-            // location    : this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
-            // },
-            // },
         }
 
     }
@@ -161,13 +148,12 @@ export default class GL_BP {
                     globalUniforms['u_TotalTime'] = {
                         type        : 'float',
                         uniformType : 'uniform1f',
-                        value       : this._time,
+                        value       : this._time / 1000.0,
                         location    : this.gl.getUniformLocation(shaderProgram, 'u_TotalTime')
                     };
                     break;
                 }
                 case 'u_ProjectionMatrix' : {
-                    this._programs[_program].uniformNeedsUpdate = true;
                     globalUniforms['u_ProjectionMatrix'] = {
                         type        : 'mat4',
                         uniformType : 'uniformMatrix4fv',
@@ -177,7 +163,6 @@ export default class GL_BP {
                     break;
                 }
                 case 'u_ViewMatrix' : {
-                    this._programs[_program].uniformNeedsUpdate = true;
                     globalUniforms['u_ViewMatrix'] = {
                         type        : 'mat4',
                         uniformType : 'uniformMatrix4fv',
@@ -219,9 +204,8 @@ export default class GL_BP {
 
     updateAllGlobalUniforms(){
         for(const program in this._programs){
-            if(this._programs.hasOwnProperty(program) && this._programs[program].uniformNeedsUpdate){
-                const _uniforms = this._programs[program].globalUniforms;
-                this.updateGlobalUniforms(_uniforms);
+            if(this._programs.hasOwnProperty(program)){
+                this.updateGlobalUniforms(this._programs[program].globalUniforms);
             }
         }
     }
@@ -239,11 +223,11 @@ export default class GL_BP {
                         break;
                     }
                     case 'u_ProjectionMatrix' : {
-                        this.updateProjectionMatrix(program);
+                        mat4.perspective(_uniforms[uniform].value, this._fieldOfView, this._aspect, this._zNear, this._zFar);
                         break;
                     }
                     case 'u_ViewMatrix' : {
-                        this.updateViewMatrix(program);
+                        mat4.lookAt(_uniforms[uniform].value, this._position, this._target, this._up);
                         break;
                     }
                 }
@@ -261,7 +245,7 @@ export default class GL_BP {
     updateViewMatrix(_program){
         // this._viewMat = mat4.create();
         mat4.lookAt(
-            this._programs[_program].globalUniforms.u_ViewMatrix.value,
+            this._programs[_program].globaluniforms.u_viewmatrix.value,
             this._position, this._target, this._up);
     }
 
@@ -388,7 +372,9 @@ export default class GL_BP {
 
                 /* UPDATE AND SET GLOBAL UNIFORMS */
                 if(Object.keys(program_desc.globalUniforms).length > 0){
-                    if(program_desc.uniformNeedsUpdate) this.updateGlobalUniforms(program.globalUniforms);
+                    if(program_desc.uniformNeedsUpdate) {
+                        this.updateGlobalUniforms(program_desc.globalUniforms);
+                    }
                     this.setGlobalUniforms(program_desc.globalUniforms);
                 }
 
@@ -406,7 +392,6 @@ export default class GL_BP {
                     if(geom.needsUpdate) {
                         geom.updateModelMatrix(this._time);
                         geom.setUniforms();
-                        // debugger;
                     }
                     // const numUniforms = this.gl.getProgramParameter(program_desc.shader, this.gl.ACTIVE_UNIFORMS);
                     // for (let i = 0; i < numUniforms; ++i) {
@@ -535,7 +520,6 @@ export default class GL_BP {
 
     set cameraPosition(loc){
         this._position = vec3.fromValues(...loc);
-        // this.updateViewMatrix();
         this.updateAllGlobalUniforms();
     }
 

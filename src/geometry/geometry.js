@@ -85,17 +85,14 @@ export default class Geometry {
             switch(uniform){
                 case 'u_ModelMatrix' : {
                     this._uniforms['u_ModelMatrix'] = {
-                        // type        : 'mat4',
                         type        : 'uniformMatrix4fv',
                         value       : mat4.create(), //this._projectionMat,
-                        // programName : null,
-                        location    : this.gl.getUniformLocation(_shaderProgram, 'u_ProjectionMatrix')
+                        location    : this.gl.getUniformLocation(_shaderProgram, 'u_ModelMatrix')
                     };
                     break;
                 }
             }
         }
-        console.log(this._uniforms);
         // if(_textures){
         // for(const tex of _textures){
         // Object.assign(this._uniforms, tex);

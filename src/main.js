@@ -69,18 +69,21 @@ function icosahedron() {
 
     GL.initShaderProgram('faces', facesVert, facesFrag, null, 'TRIANGLES');
 
-    GL.cameraPosition = [0, 0, 3];
     const icos = GL.Icosahedron('faces');
     icos.rotate = {s:0.001, a:[0,1,0]};
+
     GL.initProgramUniforms('faces', [
         'u_ProjectionMatrix',
         'u_ViewMatrix',
     ]);
+    GL.cameraPosition = [0, 1, 4];
+
     GL.setDrawParams('faces', {
         clearColor : [0.8, 1.0, 1.0, 1.0],
     });
     GL.initGeometryUniforms('faces', [ 'u_ModelMatrix' ]);
-    console.log(GL.programs);
+
+    // console.log(GL.programs.faces.globalUniforms);
 
     function draw(now) {
         GL.draw(now);
