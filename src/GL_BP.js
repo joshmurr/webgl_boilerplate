@@ -9,37 +9,6 @@ import Quad from './geometry/quad.js';
 export default class GL_BP {
     constructor(){
         this._programs = {};
-
-        /*
-        this._programs = [
-            programName : {
-                name : ,
-                shader   : shaderProgram,
-                transformFeedback : **BOOL**,
-                transformFeedbackVaryings : ,
-                mode     : this.gl[_mode] (POINTS, TRIANGLES, etc),
-                geometry : [],
-                textures : [],
-                globalUniforms : {
-                    u_ProjectionMatrix : ,
-                    u_ViewMatrix : ,
-                    u_TimeDelta : ,
-                    u_TotalTime : ,
-                },
-                drawSettings : {
-                    viewport : ,
-                    clearColor : ,
-                    clearDepth : ,
-                    clear : ,
-                    enable : [],
-                    disable : [],
-                    framebuffer : ,
-
-                }
-            }
-        }];
-        */
-
         this._textures = {};
         this._framebuffers = {};
         this._time = 0.0;
@@ -174,6 +143,15 @@ export default class GL_BP {
             }
         }
         this.updateGlobalUniforms(globalUniforms);
+    }
+
+    addUniform(_programName, _name, _initialValue, _type, _glType){
+        this._programs[__programName].globalUniforms[_name] = {
+            type        : _glType,
+            uniformType : _type,
+            value       : _initialValue,
+            location    : this.gl.getUniformLocation(_program, _name)
+        }
     }
 
     initGeometryUniforms(_program, _uniforms){
@@ -357,6 +335,8 @@ export default class GL_BP {
                             for(const val of values) this.gl[param](this.gl[val]);
                         } else if(param === 'blendFunc'){
                             this.gl[param](this.gl[values[0]], this.gl[values[1]]);
+                        } else if(param === 'depthFunc'){
+                            this.gl[param](this.gl[values[0]]);
                         } else if(param === 'clear'){
                             /* COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT */
                             let clear = 0;
@@ -396,11 +376,13 @@ export default class GL_BP {
                         geom.updateModelMatrix(this._time);
                     }
                     geom.setUniforms();
+
                     // const numUniforms = this.gl.getProgramParameter(program_desc.shader, this.gl.ACTIVE_UNIFORMS);
                     // for (let i = 0; i < numUniforms; ++i) {
                           // const info = this.gl.getActiveUniform(program_desc.shader, i);
                           // console.log('name:', info.name, 'type:', info.type, 'size:', info.size);
                     // }
+                    // debugger;
 
                     /* DRAW */
                     switch(program_desc.mode){
@@ -425,14 +407,14 @@ export default class GL_BP {
         }
     }
 
-    loadTexture(_name, _url) {
+    loadTexture(_programName, _name, _url) {
         const texture = this.gl.createTexture();
-        this.gl.bindTexture(gl.TEXTURE_2D, texture);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
 
         // Set texture to one blue dot while it loads below
         this.gl.texImage2D(
             this.gl.TEXTURE_2D,
-            0, gl.RGBA,
+            0, this.gl.RGBA,
             1,
             1,
             0,
@@ -455,23 +437,42 @@ export default class GL_BP {
                 this.gl.UNSIGNED_BYTE,
                 image
             );
-            this.gl.generateMipmap(gl.TEXTURE_2D);
+            this.gl.generateMipmap(this.gl.TEXTURE_2D);
         });
 
-        this._textures[_name] = texture;
+        this._programs[_programName].globalUniforms[_name] = {
+            type        : 'texture',
+            uniformType : 'uniform1i',
+            value       : texture,
+            // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
+            location    : this.gl.getUniformLocation(
+                this._programs[_programName].shader, // Not yet assigned
+                _name
+            ),
+            unit : 0
+        }
+
+        // this._textures[_name] = {
+            // type        : 'texture',
+            // uniformType : 'uniform1i',
+            // uniformName : _name,
+            // value       : texture,
+            // // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
+            // location    : null, // Not yet assigned
+            // unit        : 0
+        // }
     }
 
-    dataTexture(_options){
+    dataTexture(_programName, _options){
         // Default options, to be overwritten by _options passed in
         let options = {
-            program : null,
             name: null,
-            uniformName: 'u_Texture',
+            // uniformName: 'u_Texture',
             level : 0,
             unit : 0,
             width : 1,
             height : 1,
-            data : null,
+            data : new Uint8Array([0, 0, 255, 255]),
             border : 0,
             internalFormat : 'RGBA8',
             format : 'RGBA',
@@ -504,15 +505,26 @@ export default class GL_BP {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl[options.filter]);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
 
-        // These are basically temporary uniforms to be linked later
-        this._textures[options.name] = {
+        // // These are basically temporary uniforms to be linked later
+        // this._textures[options.name] = {
+            // type        : 'texture',
+            // uniformType : 'uniform1i',
+            // uniformName : options.uniformName,
+            // value       : texture,
+            // // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
+            // location    : null, // Not yet assigned
+            // unit        : options.unit
+        // }
+        this._programs[_programName].globalUniforms[options.name] = {
             type        : 'texture',
             uniformType : 'uniform1i',
-            uniformName : options.uniformName,
             value       : texture,
             // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
-            location    : null, // Not yet assigned
-            unit        : options.unit
+            location    : this.gl.getUniformLocation(
+                this._programs[_programName].shader, // Not yet assigned
+                options.name
+            ),
+            unit : options.unit
         }
     }
 

@@ -92,13 +92,13 @@ export default class ParticleSystem extends Geometry {
         const updateAttributes = {
             i_Position: {
                 location: this.gl.getAttribLocation(_updateProgram, "i_Position"),
-                num_components: 2,
+                num_components: this._options.dimensions,
                 type: this.gl.FLOAT,
                 size: 4,
             },
             i_Velocity: {
                 location: this.gl.getAttribLocation(_updateProgram, "i_Velocity"),
-                num_components: 2,
+                num_components: this._options.dimensions,
                 type: this.gl.FLOAT,
                 size: 4,
             },
@@ -119,7 +119,7 @@ export default class ParticleSystem extends Geometry {
         const renderAttributes = {
             i_Position: {
                 location: this.gl.getAttribLocation(_renderProgram, "i_Position"),
-                num_components: 2,
+                num_components: this._options.dimensions,
                 type: this.gl.FLOAT
             }
         };
@@ -129,7 +129,7 @@ export default class ParticleSystem extends Geometry {
                 vao: this._VAOs[0],
                 buffers: [{
                     buffer_object: this._buffers[0],
-                    stride: 4 * 6,
+                    stride: 4 * ((this._options.dimensions * 2) + 2),
                     attributes: updateAttributes
                 }]
             },
@@ -137,7 +137,7 @@ export default class ParticleSystem extends Geometry {
                 vao: this._VAOs[1],
                 buffers: [{
                     buffer_object: this._buffers[1],
-                    stride: 4 * 6,
+                    stride: 4 * ((this._options.dimensions * 2) + 2),
                     attributes: updateAttributes
                 }]
             },
@@ -145,7 +145,7 @@ export default class ParticleSystem extends Geometry {
                 vao: this._VAOs[2],
                 buffers: [{
                     buffer_object: this._buffers[0],
-                    stride: 4 * 6,
+                    stride: 4 * ((this._options.dimensions * 2) + 2),
                     attributes: renderAttributes
                 }],
             },
@@ -153,7 +153,7 @@ export default class ParticleSystem extends Geometry {
                 vao: this._VAOs[3],
                 buffers: [{
                     buffer_object: this._buffers[1],
-                    stride: 4 * 6,
+                    stride: 4 * ((this._options.dimensions * 2) + 2),
                     attributes: renderAttributes
                 }],
             },

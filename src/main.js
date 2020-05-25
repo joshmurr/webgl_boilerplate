@@ -29,17 +29,38 @@ function particles3D(){
     GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
     GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
 
+    let d = [];
+    for(let i=0; i<512*512; ++i){
+        d.push(Math.random()*255);
+        d.push(Math.random()*255);
+        d.push(Math.random()*255);
+    }
+
+    // GL.loadTexture('update', 'u_RgNoise', './glsl/particles3d/rgperlin.png');
+    GL.dataTexture('update', {
+        name           :'u_RgNoise',
+        width          : 512,
+        height         : 512,
+        internalFormat : 'RGB8',
+        format         : 'RGB',
+        data           : new Uint8Array(d),
+    });
+
     GL.initProgramUniforms('update', [ 'u_TimeDelta' ]);
     GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
 
     GL.setDrawParams('render', {
-        clearColor : [0.0, 0.0, 1.0, 1.0],
+        clearColor : [0.0, 0.0, 0.0, 1.0],
         enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
         blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
+        depthFunc  : ['LEQUAL']
     });
 
-    const opts = { dimensions : 3 };
+    GL.cameraPosition = [0, 0, 5];
+
+    const opts = { dimensions : 3, birthRate : 0.1 };
     const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
+    ParticleSystem.rotate = { s:0.0005, a:[0,1,0]};
     GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
 
     function draw(now) {
