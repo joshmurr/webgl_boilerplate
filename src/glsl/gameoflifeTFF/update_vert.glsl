@@ -1,8 +1,8 @@
 #version 300 es
 precision mediump float;
 
-in int i_State;
-flat out int v_State;
+in float i_State;
+out float v_State;
 
 // int get(vec2 _offset){
     // return int(texture(u_State, (gl_FragCoord.xy + _offset) / u_ScaleGol).r);

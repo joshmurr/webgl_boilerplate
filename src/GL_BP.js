@@ -106,9 +106,8 @@ export default class GL_BP {
                 case 'u_TimeDelta' : {
                     this._programs[_program].uniformNeedsUpdate = true;
                     globalUniforms['u_TimeDelta'] = {
-                        type        : 'float',
-                        uniformType : 'uniform1f',
-                        value       : this._deltaTime / 1000.0,
+                        type : 'uniform1fv',
+                        value       : [this._deltaTime / 1000.0],
                         location    : this.gl.getUniformLocation(shaderProgram, 'u_TimeDelta')
                     };
                     break;
@@ -116,17 +115,23 @@ export default class GL_BP {
                 case 'u_TotalTime' : {
                     this._programs[_program].uniformNeedsUpdate = true;
                     globalUniforms['u_TotalTime'] = {
-                        type        : 'float',
-                        uniformType : 'uniform1f',
-                        value       : this._time / 1000.0,
+                        type : 'uniform1fv',
+                        value       : [this._time / 1000.0],
                         location    : this.gl.getUniformLocation(shaderProgram, 'u_TotalTime')
+                    };
+                    break;
+                }
+                case 'u_Resolution' : {
+                    globalUniforms['u_Resolution'] = {
+                        type : 'uniform2fv',
+                        value       : [this.gl.canvas.width, this.gl.canvas.height],
+                        location    : this.gl.getUniformLocation(shaderProgram, 'u_Resolution')
                     };
                     break;
                 }
                 case 'u_ProjectionMatrix' : {
                     globalUniforms['u_ProjectionMatrix'] = {
-                        type        : 'mat4',
-                        uniformType : 'uniformMatrix4fv',
+                        type : 'uniformMatrix4fv',
                         value       : this._projectionMat,
                         location    : this.gl.getUniformLocation(shaderProgram, 'u_ProjectionMatrix')
                     };
@@ -134,8 +139,7 @@ export default class GL_BP {
                 }
                 case 'u_ViewMatrix' : {
                     globalUniforms['u_ViewMatrix'] = {
-                        type        : 'mat4',
-                        uniformType : 'uniformMatrix4fv',
+                        type : 'uniformMatrix4fv',
                         value       : this._viewMat,
                         location    : this.gl.getUniformLocation(shaderProgram, 'u_ViewMatrix')
                     };
@@ -177,11 +181,15 @@ export default class GL_BP {
             if(_uniforms.hasOwnProperty(uniform)){
                 switch(uniform) {
                     case 'u_TimeDelta' : {
-                        _uniforms[uniform].value = this._deltaTime / 1000.0;
+                        _uniforms[uniform].value = [this._deltaTime / 1000.0];
                         break;
                     }
                     case 'u_TotalTime' : {
-                        _uniforms[uniform].value = this._time / 1000.0;
+                        _uniforms[uniform].value = [this._time / 1000.0];
+                        break;
+                    }
+                    case 'u_Resolution' : {
+                        _uniforms[uniform].value = [this.gl.canvas.width, this.gl.canvas.height];
                         break;
                     }
                     case 'u_ProjectionMatrix' : {
@@ -202,16 +210,23 @@ export default class GL_BP {
             if(_uniforms.hasOwnProperty(uniform)){
                 const uniform_desc = _uniforms[uniform];
                 switch(uniform_desc.type){
-                    case 'mat4' : {
-                        this.gl[uniform_desc.uniformType](
+                    case 'uniformMatrix4fv' : {
+                        this.gl[uniform_desc.type](
                             uniform_desc.location,
                             false,
                             uniform_desc.value,
                         );
                         break;
                     }
+                    // case 'uniform2fv' : {
+                        // this.gl[uniform_desc.type](
+                            // uniform_desc.location,
+                            // uniform_desc.value,
+                        // );
+                        // break;
+                    // }
                     default : {
-                        this.gl[uniform_desc.uniformType](
+                        this.gl[uniform_desc.type](
                             uniform_desc.location,
                             uniform_desc.value,
                         );
@@ -294,6 +309,23 @@ export default class GL_BP {
         this.gl.bindTexture(this.gl.TEXTURE_2D, _texture);
     }
 
+    get programs(){
+        return this._programs;
+    }
+
+    set cameraPosition(loc){
+        this._position = vec3.fromValues(...loc);
+        this.updateAllGlobalUniforms();
+    }
+
+    set cameraTarget(loc){
+        this._target = vec3.fromValues(...loc);
+    }
+
+    set FOV(val){
+        this._fieldOfView = val * Math.PI/180;
+    }
+
     bindMainViewport(){
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
@@ -309,7 +341,6 @@ export default class GL_BP {
             }
         }
     }
-
 
     draw(now, _selectedProgram=null, _viewPort=[null, null]){
         // TIME ---------------------------------
@@ -359,6 +390,7 @@ export default class GL_BP {
                     if(program_desc.uniformNeedsUpdate) {
                         this.updateGlobalUniforms(program_desc.globalUniforms);
                     }
+                    // debugger;
                     this.setGlobalUniforms(program_desc.globalUniforms);
                 }
 
@@ -383,12 +415,16 @@ export default class GL_BP {
                           // const info = this.gl.getActiveUniform(program_desc.shader, i);
                           // console.log('name:', info.name, 'type:', info.type, 'size:', info.size);
                     // }
-                    // debugger;
 
+        // console.log(this.gl.getVertexAttrib(0, this.gl.VERTEX_ATTRIB_ARRAY_TYPE));
                     /* DRAW */
                     switch(program_desc.mode){
                         case 'POINTS' : {
                             this.gl.drawArrays(this.gl[program_desc.mode], 0, geom.numVertices);
+                            break;
+                        }
+                        case 'TRIANGLES_ARRAYS' : {
+                            this.gl.drawArrays(this.gl.TRIANGLES, 0, geom.numVertices);
                             break;
                         }
                         default : {
@@ -510,24 +546,6 @@ export default class GL_BP {
         }
     }
 
-    // GETTERS - SETTERS
-    get programs(){
-        return this._programs;
-    }
-
-    set cameraPosition(loc){
-        this._position = vec3.fromValues(...loc);
-        this.updateAllGlobalUniforms();
-    }
-
-    set cameraTarget(loc){
-        this._target = vec3.fromValues(...loc);
-    }
-
-    set FOV(val){
-        this._fieldOfView = val * Math.PI/180;
-    }
-
     Quad(){
         return new Quad(this.gl);
     }
@@ -566,7 +584,7 @@ export default class GL_BP {
     }
 
     GameOfLifeTFF(_updateProgram, _renderProgram, _options=null){
-        const GOL = new ParticleSystem(this.gl, _options);
+        const GOL = new GameOfLifeTFF(this.gl, _options);
         this._programs[_updateProgram].geometry.push(GOL);
         this._programs[_renderProgram].geometry.push(GOL);
         GOL.linkProgram(

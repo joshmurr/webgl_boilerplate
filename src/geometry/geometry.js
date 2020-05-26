@@ -31,6 +31,7 @@ export default class Geometry {
             for(const attrib in buffer.attributes){
                 if(buffer.attributes.hasOwnProperty(attrib)){
                     const attrib_desc = buffer.attributes[attrib];
+                    // debugger;
                     this.gl.enableVertexAttribArray(attrib_desc.location);
                     this.gl.vertexAttribPointer(
                         attrib_desc.location,

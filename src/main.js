@@ -19,11 +19,12 @@ function golTFF(){
     const transformFeedbackVaryings = [ "v_State" ];
 
     GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
-    GL.initShaderProgram('render', renderVert, renderFrag, null, 'TRIANGLES');
-    // GL.initProgramUniforms('update', [ 'u_TimeDelta', 'u_TotalTime' ]);
+    GL.initShaderProgram('render', renderVert, renderFrag, null, 'TRIANGLES_ARRAYS');
+    GL.initProgramUniforms('render', [ 'u_Resolution', 'u_TotalTime' ]);
     // GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
 
     const GOL = GL.GameOfLifeTFF('update', 'render');
+
 
     function draw(now) {
         GL.draw(now);

@@ -3,8 +3,9 @@ import { mat4 } from "gl-matrix";
 
 export default class GameOfLifeTFF extends Geometry {
     constructor(gl, _options=null){
+        super(gl);
         this._options = {
-            scale   : 4,
+            scale   : 64,
             width   : 512,
             height  : 512,
         };
@@ -25,6 +26,9 @@ export default class GameOfLifeTFF extends Geometry {
             i<lim;++i){
             this._normals.push(Math.round(Math.random()));
         }
+
+        this._read = 0;
+        this._write = 1;
     }
 
     get read(){
@@ -40,11 +44,15 @@ export default class GameOfLifeTFF extends Geometry {
         this._write = _val;
     }
 
+    get numVertices(){
+        return this._verts.length/2;
+    }
+
     get VAO(){
         const tmp = this._read;
         this._read = this._write;
         this._write = tmp;
-        return this._VAOs[tmp];
+        return this._VAOs[tmp+2];
     }
 
     linkProgram(_updateProgram, _renderProgram){
@@ -56,7 +64,7 @@ export default class GameOfLifeTFF extends Geometry {
         const quadBuffer = this.gl.createBuffer();
 
         const quad  = new Float32Array(this._verts);
-        const state = new Uint8Array(this._normals);
+        const state = new Float32Array(this._normals);
         /* PUT DATA IN THE BUFFERS */
         // GOL STATE
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this._buffers[0]);
@@ -80,22 +88,23 @@ export default class GameOfLifeTFF extends Geometry {
             i_State: {
                 location: this.gl.getAttribLocation(_updateProgram, "i_State"),
                 num_components: 1,
-                type: this.gl.UNSIGNED_BYTE,
-                size: 1,
+                type: this.gl.FLOAT,
+                size: 4,
             },
         };
 
         const renderAttributes = {
             i_Position: {
                 location: this.gl.getAttribLocation(_renderProgram, "i_Position"),
-                num_components: 3,
-                type: this.gl.FLOAT
+                num_components: 2,
+                type: this.gl.FLOAT,
+                size: 4 * 2,
             },
             i_State: {
-                location: this.gl.getAttribLocation(_updateProgram, "i_State"),
+                location: this.gl.getAttribLocation(_renderProgram, "i_State"),
                 num_components: 1,
-                type: this.gl.UNSIGNED_BYTE,
-                size: 1,
+                type: this.gl.FLOAT,
+                size: 4,
             },
         };
 
@@ -155,6 +164,7 @@ export default class GameOfLifeTFF extends Geometry {
     step(_gl, _dT){
         _gl.bindVertexArray(this._VAOs[this._read]);
 
+        // console.log(this.gl.getVertexAttrib(0, this.gl.VERTEX_ATTRIB_ARRAY_TYPE));
         /* Bind the "write" buffer as transform feedback - the varyings of the
          *      update shader will be written here. */
         _gl.bindBufferBase(
@@ -166,7 +176,7 @@ export default class GameOfLifeTFF extends Geometry {
 
         /* Begin transform feedback! */
         _gl.beginTransformFeedback(_gl.POINTS);
-        _gl.drawArrays(_gl.POINTS, 0, num_part);
+        _gl.drawArrays(_gl.POINTS, 0, this._normals.length);
         _gl.endTransformFeedback();
         _gl.disable(_gl.RASTERIZER_DISCARD);
         /* Don't forget to unbind the transform feedback buffer! */
