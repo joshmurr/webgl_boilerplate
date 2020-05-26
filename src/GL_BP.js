@@ -3,6 +3,7 @@ import Icosahedron from './geometry/icosahedron.js';
 import RandomPointSphere from './geometry/randomPointSphere.js';
 import PointCloud from './geometry/pointCloud.js';
 import ParticleSystem from './geometry/particleSystem.js';
+import GameOfLifeTFF from './geometry/gameoflifeTFF.js';
 import Cube from './geometry/cube.js';
 import Quad from './geometry/quad.js';
 
@@ -425,6 +426,7 @@ export default class GL_BP {
 
         // Asynchronously load an image
         var image = new Image();
+        console.log(_url);
         image.src = _url;
         image.addEventListener('load', function() {
             // Now that the image has loaded make copy it to the texture.
@@ -451,16 +453,6 @@ export default class GL_BP {
             ),
             unit : 0
         }
-
-        // this._textures[_name] = {
-            // type        : 'texture',
-            // uniformType : 'uniform1i',
-            // uniformName : _name,
-            // value       : texture,
-            // // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
-            // location    : null, // Not yet assigned
-            // unit        : 0
-        // }
     }
 
     dataTexture(_programName, _options){
@@ -505,16 +497,6 @@ export default class GL_BP {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl[options.filter]);
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
 
-        // // These are basically temporary uniforms to be linked later
-        // this._textures[options.name] = {
-            // type        : 'texture',
-            // uniformType : 'uniform1i',
-            // uniformName : options.uniformName,
-            // value       : texture,
-            // // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
-            // location    : null, // Not yet assigned
-            // unit        : options.unit
-        // }
         this._programs[_programName].globalUniforms[options.name] = {
             type        : 'texture',
             uniformType : 'uniform1i',
@@ -581,5 +563,16 @@ export default class GL_BP {
             this._programs[_renderProgram].shader,
         );
         return PS;
+    }
+
+    GameOfLifeTFF(_updateProgram, _renderProgram, _options=null){
+        const GOL = new ParticleSystem(this.gl, _options);
+        this._programs[_updateProgram].geometry.push(GOL);
+        this._programs[_renderProgram].geometry.push(GOL);
+        GOL.linkProgram(
+            this._programs[_updateProgram].shader,
+            this._programs[_renderProgram].shader,
+        );
+        return GOL;
     }
 }
