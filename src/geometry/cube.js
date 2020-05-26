@@ -203,53 +203,87 @@ export default class Cube extends Geometry {
     }
 
     linkProgram(_program){
-        // ATTRIBUTES
-        let attributes = { };
+        this._VAOs.push(this.gl.createVertexArray());
+
         switch(this._type){
-            case 'SOLID' : 
+            case 'SOLID' :
             case '404' : {
-                attributes['i_Position'] = {
-                    buffer: this.gl.createBuffer(),
-                    bufferData: new Float32Array(this._verts),
-                    usage: this.gl.STATIC_DRAW,
-                    location: this.gl.getAttribLocation(_program, "i_Position"),
-                    num_components: 3,
-                    type: this.gl.FLOAT,
-                    normalize: false,
-                    stride: 0,
-                    offset: 0,
+                const positionBuffer = this.gl.createBuffer();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this._verts), this.gl.STATIC_DRAW);
+                const texCoordBuffer = this.gl.createBuffer();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, potexCoordffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this._textureCoordinates), this.gl.STATIC_DRAW);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+
+                const positionAttrib = {
+                    i_Position: {
+                        location: this.gl.getAttribLocation(_program, "i_Position"),
+                        num_components: 3,
+                        type: this.gl.FLOAT,
+                        size: 4,
+                    },
                 };
-                attributes['i_TexCoord'] = {
-                    buffer: this.gl.createBuffer(),
-                    bufferData: new Float32Array(this._textureCoordinates),
-                    usage: this.gl.STATIC_DRAW,
-                    location: this.gl.getAttribLocation(_program, "i_TexCoord"),
-                    num_components: 2,
-                    type: this.gl.FLOAT,
-                    normalize: false,
-                    stride: 0,
-                    offset: 0,
+                const texAttrib = {
+                    i_TexCoord: {
+                        location: this.gl.getAttribLocation(_program, "i_TexCoord"),
+                        num_components: 2,
+                        type: this.gl.FLOAT,
+                    }
                 };
+                const VAO_desc = [
+                    {
+                        vao: this._VAOs[0],
+                        buffers: [
+                            {
+                                buffer_object: positionBuffer,
+                                stride: 0,
+                                attributes: positionAttrib
+                            },
+                            {
+                                buffer_object: texCoordBuffer,
+                                stride: 0,
+                                attributes: texAttrib
+                            },
+                        ]
+                    },
+                ];
+                for(const VAO of VAO_desc){
+                    this.setupVAO(VAO.buffers, VAO.vao);
+                }
                 break;
             }
             case 'DEBUG' : {
-                attributes['i_Position'] = {
-                    buffer: this.gl.createBuffer(),
-                    bufferData: new Float32Array(this._verts),
-                    usage: this.gl.STATIC_DRAW,
-                    location: this.gl.getAttribLocation(_program, "i_Position"),
-                    num_components: 3,
-                    type: this.gl.FLOAT,
-                    normalize: false,
-                    stride: 0,
-                    offset: 0,
+                const positionBuffer = this.gl.createBuffer();
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this._verts), this.gl.STATIC_DRAW);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+
+                const positionAttrib = {
+                    i_Position: {
+                        location: this.gl.getAttribLocation(_program, "i_Position"),
+                        num_components: 3,
+                        type: this.gl.FLOAT,
+                        size: 0,
+                    },
                 };
-                break;
+                const VAO_desc = [
+                    {
+                        vao: this._VAOs[0],
+                        buffers: [
+                            {
+                                buffer_object: positionBuffer,
+                                stride: 0,
+                                attributes: positionAttrib
+                            },
+                        ]
+                    },
+                ];
+                for(const VAO of VAO_desc){
+                    this.setupVAO(VAO.buffers, VAO.vao);
+                }
             }
         }
 
-        this._VAO = this.gl.createVertexArray();
-        this.setupVAO(attributes);
-        this.linkUniforms(_program);
     }
 }

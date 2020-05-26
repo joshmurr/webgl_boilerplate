@@ -3,18 +3,23 @@ import Icosahedron from './geometry/icosahedron.js';
 import RandomPointSphere from './geometry/randomPointSphere.js';
 import PointCloud from './geometry/pointCloud.js';
 import ParticleSystem from './geometry/particleSystem.js';
-import GameOfLifeTexture2D from './geometry/gameoflifeTexture2d.js';
+// import GameOfLifeTexture2D from './geometry/gameoflifeTexture2d.js';
 import Cube from './geometry/cube.js';
 import Quad from './geometry/quad.js';
 
 export default class GL_BP {
     constructor(){
+
+        this._canvas = null;
+        this._WIDTH = this._HEIGHT = 0;
+
         this._programs = {};
         this._textures = {};
         this._framebuffers = {};
         this._time = 0.0;
         this._oldTimestamp = 0.0;
         this._deltaTime = 0.0;
+        this._mouse = [0, 0];
 
         // Projection
         this._fieldOfView = 45 * Math.PI / 180;
@@ -30,12 +35,12 @@ export default class GL_BP {
     }
 
     init(width, height){
-        this.canvas = document.createElement("canvas");
-        this.canvas.width = this.WIDTH = width;
-        this.canvas.height = this.HEIGHT = height;
+        this._canvas = document.createElement("canvas");
+        this._canvas.width = this._WIDTH = width;
+        this._canvas.height = this._HEIGHT = height;
         const body = document.getElementsByTagName("body")[0];
-        body.appendChild(this.canvas);
-        this.gl = this.canvas.getContext('webgl2');
+        body.appendChild(this._canvas);
+        this.gl = this._canvas.getContext('webgl2');
         this._aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
         if (!this.gl) {
             console.warn("You're browser does not support WebGL 2.0. Soz.");
@@ -44,10 +49,10 @@ export default class GL_BP {
     }
 
     initTarget(width, height, canvasID){
-        this.canvas = document.getElementById(canvasID);
-        this.canvas.width = this.WIDTH = width;
-        this.canvas.height = this.HEIGHT = height;
-        this.gl = this.canvas.getContext('webgl2');
+        this._canvas = document.getElementById(canvasID);
+        this._canvas.width = this._WIDTH = width;
+        this._canvas.height = this._HEIGHT = height;
+        this.gl = this._canvas.getContext('webgl2');
         this._aspect = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight;
         if (!this.gl) {
             console.warn("You're browser does not support WebGL 2.0. Soz.");
@@ -130,6 +135,16 @@ export default class GL_BP {
                     };
                     break;
                 }
+                case 'u_Mouse' : {
+                    this._programs[_program].uniformNeedsUpdate = true;
+                    globalUniforms['u_Mouse'] = {
+                        type : 'uniform2fv',
+                        value       : this._mouse,
+                        location    : this.gl.getUniformLocation(shaderProgram, 'u_Mouse')
+                    };
+                    this.initMouse();
+                    break;
+                }
                 case 'u_ProjectionMatrix' : {
                     globalUniforms['u_ProjectionMatrix'] = {
                         type : 'uniformMatrix4fv',
@@ -191,6 +206,10 @@ export default class GL_BP {
                     }
                     case 'u_Resolution' : {
                         _uniforms[uniform].value = [this.gl.canvas.width, this.gl.canvas.height];
+                        break;
+                    }
+                    case 'u_Mouse' : {
+                        _uniforms[uniform].value = this._mouse;
                         break;
                     }
                     case 'u_ProjectionMatrix' : {
@@ -276,19 +295,8 @@ export default class GL_BP {
     }
 
 
-    linkProgram(_program, _geometry, _textureName=null){
+    linkProgram(_program, _geometry){
         this._programs[_program].geometry.push(_geometry);
-
-        const geometryTex = {};
-        if(_textureName){
-            // Update textures with program location
-            // Textures are stored in the GL_BP object
-            const texture = this._textures[_textureName];
-            texture.location = this.gl.getUniformLocation(this._programs[_program].shader, texture.uniformName);
-
-            // Textures are then passed along to get put into the geometry specific uniforms
-            geometryTex[texture.uniformName] = texture;
-        }
         _geometry.linkProgram(this._programs[_program].shader, [geometryTex]);
     }
 
@@ -417,6 +425,7 @@ export default class GL_BP {
                         } else if(param === 'depthFunc'){
                             this.gl[param](this.gl[values[0]]);
                         } else if(param === 'clear'){
+                            if(!values) continue;
                             /* COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT */
                             let clear = 0;
                             for(const val of values) clear |= this.gl[val];
@@ -431,7 +440,6 @@ export default class GL_BP {
                     // this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0,
                     // this.gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE));
 
-                // debugger;
 
                 if(program_desc.geometry.length < 1) continue;
 
@@ -473,10 +481,6 @@ export default class GL_BP {
                     switch(program_desc.mode){
                         case 'POINTS' : {
                             this.gl.drawArrays(this.gl[program_desc.mode], 0, geom.numVertices);
-                            break;
-                        }
-                        case 'TRIANGLES_ARRAYS' : {
-                            this.gl.drawArrays(this.gl.TRIANGLES, 0, geom.numVertices);
                             break;
                         }
                         default : {
@@ -604,21 +608,46 @@ export default class GL_BP {
         this._programs[p1].globalUniforms[t1].value = tmp;
     }
 
-    Quad(_program){
-        const Quad = new Quad(this.gl);
-        this._programs[_program].geometry.push(Quad);
-        Quad.linkProgram(this._programs[_program].shader);
-        return Quad;
+    initMouse(){
+        this._canvas.addEventListener('mousemove', this.setMouse);
     }
 
-    Cube(type){
-        return new Cube(this.gl, type);
+    setMouse(e){
+        let x = 2.0 * (e.pageX - e.target.offsetLeft)/this._WIDTH - 1.0;
+        let y = -(2.0 * (e.pageY - e.target.offsetTop)/this._HEIGHT - 1.0);
+        return [x, y];
     }
 
-    RandomPointSphere(_program, numPoints){
-        const Points = new RandomPointSphere(this.gl, numPoints);
-        this._programs[_program].geometry.push(Points);
-        Points.linkProgram(this._programs[_program].shader);
+    Quad(_programs=null){
+        const quad = new Quad(this.gl);
+        if(_programs){
+            for(const p of _programs){
+                this._programs[p].geometry.push(quad);
+                quad.linkProgram(this._programs[p].shader);
+            }
+        }
+        return quad;
+    }
+
+    Cube(_programs, _type){
+        const cube = new Cube(this.gl, _type);
+        if(_programs){
+            for(const p of _programs){
+                this._programs[p].geometry.push(cube);
+                cube.linkProgram(this._programs[p].shader);
+            }
+        }
+        return cube;
+    }
+
+    RandomPointSphere(_programs, _numPoints){
+        const Points = new RandomPointSphere(this.gl, _numPoints);
+        if(_programs){
+            for(const p of _programs){
+                this._programs[p].geometry.push(Points);
+                Points.linkProgram(this._programs[p].shader);
+            }
+        }
         return Points;
     }
 
@@ -645,6 +674,9 @@ export default class GL_BP {
     }
 
     GameOfLifeTexture2D(_updateProgram, _renderProgram){
+        if(Object.keys(arguments).length < 2){
+            console.error("GameOfLife requires an 'update' and a 'render' program");
+        }
         const GOL = new GameOfLifeTexture2D(this.gl);
         this._programs[_updateProgram].geometry.push(GOL);
         this._programs[_renderProgram].geometry.push(GOL);

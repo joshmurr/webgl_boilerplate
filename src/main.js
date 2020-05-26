@@ -1,10 +1,10 @@
 import GL_BP from './GL_BP';
 // import GameOfLife from './gameoflife/gameoflife.js';
 
-window.addEventListener("load", golTexture2d());
+// window.addEventListener("load", golTexture2d());
 // window.addEventListener("load", particles3D());
 // window.addEventListener("load", simpleParticles());
-// window.addEventListener("load", pointSphere());
+window.addEventListener("load", pointSphere());
 // window.addEventListener("load", icosahedron());
 //
 function golTexture2d(){
@@ -21,8 +21,8 @@ function golTexture2d(){
 
     GL.init(...GOL.viewsize);
 
-    GL.initShaderProgram('update', quadVert, updateFrag, null, 'TRIANGLES_ARRAYS');
-    GL.initShaderProgram('render', quadVert, renderFrag, null, 'TRIANGLES_ARRAYS');
+    GL.initShaderProgram('update', quadVert, updateFrag, null, 'TRIANGLES');
+    GL.initShaderProgram('render', quadVert, renderFrag, null, 'TRIANGLES');
 
     GL.setDrawParams('update', {
         viewport       : [0, 0, GOL.statesize[0], GOL.statesize[1]],
@@ -83,7 +83,7 @@ function golTexture2d(){
         value : GOL.statesize,
     });
 
-    const GameOfLife = GL.GameOfLifeTexture2D('update', 'render');
+    const GameOfLife = GL.Quad(['update', 'render']);
 
     function draw(now) {
         GL.draw(now);
@@ -118,12 +118,11 @@ function particles3D(){
         d.push(Math.random()*255);
     }
 
-    GL.loadTexture('update', 'u_ForceField', './glsl/particles3d/rgperlin.png');
     GL.dataTexture('update', {
         name           :'u_RgNoise',
         width          : 512,
         height         : 512,
-        internalformat : 'RGB8',
+        internalFormat : 'RGB8',
         format         : 'RGB',
         data           : new Uint8Array(d),
     });
@@ -141,7 +140,7 @@ function particles3D(){
     GL.cameraPosition = [0, 2, 3.5];
 
     const opts = { 
-        numParticles : 3000000,
+        numParticles : 10000,
         lifeRange    : [1.01, 10.1],
         dimensions : 3, 
         birthRate : 0.99
@@ -175,6 +174,7 @@ function simpleParticles() {
         "v_Life",
     ];
 
+
     GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
     GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
 
@@ -182,12 +182,27 @@ function simpleParticles() {
     GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
 
     GL.setDrawParams('render', {
-        clearColor : [0.0, 0.0, 1.0, 1.0],
+        clearColor : [0.1, 0.1, 0.3, 1.0],
         enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
         blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
     });
 
-    const opts = { numParticles : 200 };
+    let d = [];
+    for(let i=0; i<512*512; ++i){
+        d.push(Math.random()*255);
+        d.push(Math.random()*255);
+    }
+
+    GL.dataTexture('update', {
+        name           :'u_RgNoise',
+        width          : 512,
+        height         : 512,
+        internalFormat : 'RG8',
+        format         : 'RG',
+        data           : new Uint8Array(d),
+    });
+
+    const opts = { numParticles : 200, birthRate:0.1 };
     const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
     GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
 
@@ -220,8 +235,6 @@ function icosahedron() {
     });
     GL.initGeometryUniforms('faces', [ 'u_ModelMatrix' ]);
 
-    // console.log(GL.programs.faces.globalUniforms);
-
     function draw(now) {
         GL.draw(now);
         window.requestAnimationFrame(draw);
@@ -238,18 +251,28 @@ function pointSphere() {
     GL.init(512,512);
 
     GL.initShaderProgram('points', pointsVert, pointsFrag, null, 'POINTS');
-    const points = GL.RandomPointSphere('points', 1000);
+    GL.initShaderProgram('lines', pointsVert, basicFrag, null, 'LINES');
+
+    GL.setDrawParams('lines', { clear : null });
+
+    const points = GL.RandomPointSphere(['points'], 1000);
     points.rotate = {s:0.001, a:[0,1,0]};
+
+    const cube = GL.Cube(['lines'], 'DEBUG');
+    cube.rotate = {s:0.001, a:[0,1,0]};
+
     GL.initProgramUniforms('points', [
         'u_ProjectionMatrix',
         'u_ViewMatrix',
     ]);
+    GL.initGeometryUniforms('points', [ 'u_ModelMatrix' ]);
+    GL.initProgramUniforms('lines', [
+        'u_ProjectionMatrix',
+        'u_ViewMatrix',
+    ]);
+    GL.initGeometryUniforms('lines', [ 'u_ModelMatrix' ]);
     GL.cameraPosition = [0, 0, 3];
-
-    GL.setDrawParams('points', {
-        clearColor : [0.9, 0.9, 1.0, 1.0],
-        clearDepth : [1.0],
-    });
+    console.log(GL.programs);
 
     function draw(now) {
         GL.draw(now);

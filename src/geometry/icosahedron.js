@@ -132,23 +132,5 @@ export default class Icosahedron extends Geometry {
         for(const VAO of VAO_desc){
             this.setupVAO(VAO.buffers, VAO.vao);
         }
-
-        // this._uniforms = {
-            // u_ModelMatrix : {
-                // value    : mat4.create(),
-                // type     : 'uniformMatrix4fv',
-                // uniformType : 'mat4',
-                // programName : null,
-                // location : this.gl.getUniformLocation(_program, 'u_ModelMatrix')
-            // },
-        // }
-        // Add textures into uniforms
-        // if(_textures){
-            // for(const tex of _textures){
-                // Object.assign(this._uniforms, tex);
-            // }
-        // }
-
-        // this.linkUniforms(_program);
     }
 }
