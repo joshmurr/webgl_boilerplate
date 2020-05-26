@@ -1,13 +1,12 @@
 #version 300 es
 precision mediump float;
 
-in vec2 v_TexCoord;
-
-uniform sampler2D u_State;
-uniform vec2 u_ScaleCopy;
+uniform sampler2D u_StateRender;
+uniform vec2 u_Scale;
 
 out vec4 OUTCOLOR;
 
 void main(){
-    OUTCOLOR = texture(u_State, gl_FragCoord.xy / u_ScaleCopy);
+    OUTCOLOR = texture(u_StateRender, gl_FragCoord.xy / u_Scale);
+    // OUTCOLOR = vec4((gl_FragCoord.xy / u_Scale), 0.0, 1.0);
 }

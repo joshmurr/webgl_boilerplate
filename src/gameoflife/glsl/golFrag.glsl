@@ -1,15 +1,13 @@
 #version 300 es
 precision mediump float;
 
-in vec2 v_TexCoord;
-
-uniform sampler2D u_State;
-uniform vec2 u_ScaleGol;
+uniform sampler2D u_StateUpdate;
+uniform vec2 u_Scale;
 
 out vec4 OUTCOLOR;
 
 int get(vec2 _offset){
-    return int(texture(u_State, (gl_FragCoord.xy + _offset) / u_ScaleGol).r);
+    return int(texture(u_StateUpdate, (gl_FragCoord.xy + _offset) / u_Scale).r);
 }
 
 void main(){

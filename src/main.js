@@ -1,30 +1,89 @@
 import GL_BP from './GL_BP';
 // import GameOfLife from './gameoflife/gameoflife.js';
 
-window.addEventListener("load", golTFF());
+window.addEventListener("load", golTexture2d());
 // window.addEventListener("load", particles3D());
 // window.addEventListener("load", simpleParticles());
 // window.addEventListener("load", pointSphere());
 // window.addEventListener("load", icosahedron());
 //
-function golTFF(){
-    const updateVert = require('./glsl/gameoflifeTFF/update_vert.glsl');
-    const updateFrag = require('./glsl/gameoflifeTFF/passthru_frag.glsl');
-    const renderVert = require('./glsl/gameoflifeTFF/render_vert.glsl');
-    const renderFrag = require('./glsl/gameoflifeTFF/render_frag.glsl');
+function golTexture2d(){
+    const quadVert = require('./gameoflife/glsl/quadVert.glsl');
+    const updateFrag = require('./gameoflife/glsl/golFrag.glsl');
+    const renderFrag = require('./gameoflife/glsl/copyFrag.glsl');
 
     const GL = new GL_BP();
-    GL.init(512,512);
 
-    const transformFeedbackVaryings = [ "v_State" ];
+    const GOL = {
+        viewsize : [512, 512],
+        statesize: [512/4, 512/4],
+    };
 
-    GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
-    GL.initShaderProgram('render', renderVert, renderFrag, null, 'TRIANGLES_ARRAYS');
-    GL.initProgramUniforms('render', [ 'u_Resolution', 'u_TotalTime' ]);
-    // GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
+    GL.init(...GOL.viewsize);
 
-    const GOL = GL.GameOfLifeTFF('update', 'render');
+    GL.initShaderProgram('update', quadVert, updateFrag, null, 'TRIANGLES_ARRAYS');
+    GL.initShaderProgram('render', quadVert, renderFrag, null, 'TRIANGLES_ARRAYS');
 
+    GL.setDrawParams('update', {
+        viewport       : [0, 0, GOL.statesize[0], GOL.statesize[1]],
+    });
+
+    GL.setFramebufferRoutine('update', {
+        bindFramebuffer : 'step',
+        framebufferTexture2D : ['update', 'u_StateUpdate'],
+        bindTexture : ['render', 'u_StateRender'],
+    });
+
+    GL.setFramebufferRoutine('render', {
+        pre     : {
+            func : 'swapTextures',
+            args : [['update','u_StateUpdate'], ['render','u_StateRender']],
+        },
+        bindFramebuffer : null,
+        bindTexture : ['render', 'u_StateRender'],
+    });
+
+    GL.framebuffer('step');
+
+    let d = [];
+    for(let i=0, size = GOL.statesize[0]*GOL.statesize[1]; i<size; i++){
+        const state = Math.random() < 0.5 ? 255 : 0
+        d.push(state, state, state, 0.0);
+    }
+
+    let d8 = new Uint8Array(d);
+
+    GL.dataTexture('update', {
+        name : 'u_StateUpdate',
+        width : GOL.statesize[0],
+        height : GOL.statesize[1],
+        wrap : 'REPEAT',
+        data           : d8
+    });
+
+    GL.dataTexture('render', {
+        name : 'u_StateRender',
+        width : GOL.statesize[0],
+        height : GOL.statesize[1],
+        wrap : 'REPEAT',
+        data           : d8
+    });
+
+
+    GL.initProgramUniforms('render', [ 'u_Resolution' ]);
+
+    GL.addProgramUniform('render', {
+        name : 'u_Scale',
+        type : 'uniform2fv',
+        value : GOL.viewsize,
+    });
+    GL.addProgramUniform('update', {
+        name : 'u_Scale',
+        type : 'uniform2fv',
+        value : GOL.statesize,
+    });
+
+    const GameOfLife = GL.GameOfLifeTexture2D('update', 'render');
 
     function draw(now) {
         GL.draw(now);
@@ -64,7 +123,7 @@ function particles3D(){
         name           :'u_RgNoise',
         width          : 512,
         height         : 512,
-        internalFormat : 'RGB8',
+        internalformat : 'RGB8',
         format         : 'RGB',
         data           : new Uint8Array(d),
     });

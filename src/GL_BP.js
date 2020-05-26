@@ -3,7 +3,7 @@ import Icosahedron from './geometry/icosahedron.js';
 import RandomPointSphere from './geometry/randomPointSphere.js';
 import PointCloud from './geometry/pointCloud.js';
 import ParticleSystem from './geometry/particleSystem.js';
-import GameOfLifeTFF from './geometry/gameoflifeTFF.js';
+import GameOfLifeTexture2D from './geometry/gameoflifeTexture2d.js';
 import Cube from './geometry/cube.js';
 import Quad from './geometry/quad.js';
 
@@ -83,7 +83,6 @@ export default class GL_BP {
             transformFeedback : _transformFeedbackVaryings ? true : false,
             transformFeedbackVaryings : _transformFeedbackVaryings,
             geometry : [],
-            // textures : [],
             uniformNeedsUpdate : false,
             globalUniforms : {},
             drawParams : {
@@ -92,7 +91,9 @@ export default class GL_BP {
                 clear      : ['COLOR_BUFFER_BIT', 'DEPTH_BUFFER_BIT'],
                 viewport   : [0, 0, this.gl.canvas.width, this.gl.canvas.height],
                 enable     : ['CULL_FACE', 'DEPTH_TEST'],
-            }
+            },
+            customFramebufferRoutine : false,
+            framebufferRoutine : {}
         }
 
     }
@@ -150,12 +151,12 @@ export default class GL_BP {
         this.updateGlobalUniforms(globalUniforms);
     }
 
-    addUniform(_programName, _name, _initialValue, _type, _glType){
-        this._programs[__programName].globalUniforms[_name] = {
-            type        : _glType,
-            uniformType : _type,
-            value       : _initialValue,
-            location    : this.gl.getUniformLocation(_program, _name)
+    addProgramUniform(_program, _options){
+        const program = this.getProgram(_program);
+        program.globalUniforms[_options.name] = {
+            type : _options.type,
+            value : _options.value,
+            location : this.gl.getUniformLocation(program.shader, _options.name)
         }
     }
 
@@ -255,6 +256,12 @@ export default class GL_BP {
         Object.assign(program.drawParams, _options);
     }
 
+    setFramebufferRoutine(_program, _options){
+        const program = this.getProgram(_program);
+        Object.assign(program.framebufferRoutine, _options);
+        program.customFramebufferRoutine = true;
+    }
+
     loadShader(type, source) {
         const shader = this.gl.createShader(type);
         this.gl.shaderSource(shader, source);
@@ -342,7 +349,7 @@ export default class GL_BP {
         }
     }
 
-    draw(now, _selectedProgram=null, _viewPort=[null, null]){
+    draw(now){
         // TIME ---------------------------------
         if (this._oldTimestamp != 0) {
             this._deltaTime = now - this._oldTimestamp;
@@ -353,11 +360,51 @@ export default class GL_BP {
         this._oldTimestamp = now;
         this._time += this._deltaTime;
         // --------------------------------------
+        
 
         for(const program in this._programs){
             if(this._programs.hasOwnProperty(program)){
-                // const program_desc = _selectedProgram === null ? this._programs[program] : this._programs[_selectedProgram];
                 const program_desc = this._programs[program];
+
+                /* SET FRAMEBUFFER PARAMETERS */
+                if(program_desc.customFramebufferRoutine){
+                    for(const param in program_desc.framebufferRoutine){
+                        if(program_desc.framebufferRoutine.hasOwnProperty(param)){
+                            const values = program_desc.framebufferRoutine[param];
+                            switch(param) {
+                                case 'pre' : {
+                                    // Run the pre-function:
+                                    this[values.func](...values.args);
+                                    break;
+                                }
+                                case 'bindFramebuffer' : {
+                                    this.gl[param](this.gl.FRAMEBUFFER, this._framebuffers[values]);
+                                    break;
+                                }
+                                case 'framebufferTexture2D' : {
+                                    let [p, t] = values;
+                                    this.gl[param](
+                                        this.gl.FRAMEBUFFER,
+                                        this.gl.COLOR_ATTACHMENT0,
+                                        this.gl.TEXTURE_2D,
+                                        this._programs[p].globalUniforms[t].value,// Select the texture
+                                        0
+                                    );
+                                    break;
+                                }
+                                case 'bindTexture' : {
+                                    let [p, t] = values;
+                                    this.gl[param](
+                                        this.gl.TEXTURE_2D,
+                                        this._programs[p].globalUniforms[t].value // Select the texture
+                                    );
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 /* SET DRAW PARAMETERS */
                 for(const param in program_desc.drawParams){
                     if(program_desc.drawParams.hasOwnProperty(param)){
@@ -380,6 +427,12 @@ export default class GL_BP {
                     }
                 }
 
+                // console.log(this.gl.getFramebufferAttachmentParameter(
+                    // this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0,
+                    // this.gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE));
+
+                // debugger;
+
                 if(program_desc.geometry.length < 1) continue;
 
                 /* USE PROGRAM */
@@ -390,7 +443,6 @@ export default class GL_BP {
                     if(program_desc.uniformNeedsUpdate) {
                         this.updateGlobalUniforms(program_desc.globalUniforms);
                     }
-                    // debugger;
                     this.setGlobalUniforms(program_desc.globalUniforms);
                 }
 
@@ -479,8 +531,8 @@ export default class GL_BP {
         });
 
         this._programs[_programName].globalUniforms[_name] = {
-            type        : 'texture',
-            uniformType : 'uniform1i',
+            // type        : 'texture',
+            type : 'uniform1i',
             value       : texture,
             // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
             location    : this.gl.getUniformLocation(
@@ -534,10 +586,8 @@ export default class GL_BP {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
 
         this._programs[_programName].globalUniforms[options.name] = {
-            type        : 'texture',
-            uniformType : 'uniform1i',
+            type : 'uniform1i',
             value       : texture,
-            // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
             location    : this.gl.getUniformLocation(
                 this._programs[_programName].shader, // Not yet assigned
                 options.name
@@ -546,8 +596,19 @@ export default class GL_BP {
         }
     }
 
-    Quad(){
-        return new Quad(this.gl);
+    swapTextures(_programTex1, _programTex2){
+        const [p1, t1] = _programTex1;
+        const [p2, t2] = _programTex2;
+        const tmp = this._programs[p2].globalUniforms[t2].value;
+        this._programs[p2].globalUniforms[t2].value = this._programs[p1].globalUniforms[t1].value;
+        this._programs[p1].globalUniforms[t1].value = tmp;
+    }
+
+    Quad(_program){
+        const Quad = new Quad(this.gl);
+        this._programs[_program].geometry.push(Quad);
+        Quad.linkProgram(this._programs[_program].shader);
+        return Quad;
     }
 
     Cube(type){
@@ -583,8 +644,8 @@ export default class GL_BP {
         return PS;
     }
 
-    GameOfLifeTFF(_updateProgram, _renderProgram, _options=null){
-        const GOL = new GameOfLifeTFF(this.gl, _options);
+    GameOfLifeTexture2D(_updateProgram, _renderProgram){
+        const GOL = new GameOfLifeTexture2D(this.gl);
         this._programs[_updateProgram].geometry.push(GOL);
         this._programs[_renderProgram].geometry.push(GOL);
         GOL.linkProgram(
