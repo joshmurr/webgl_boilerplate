@@ -35,7 +35,7 @@ function pointSphere() {
     GL.setDrawParams('lines', { clear : null });
 
     // Create geometries with a shader program to link them
-    const points = GL.RandomPointSphere(['points'], 1000);
+    const points = GL.RandomPointSphere(['points'], 100000);
     points.rotate = {s:0.001, a:[0,1,0]};
 
     const cube = GL.Cube(['lines'], 'DEBUG');
@@ -65,10 +65,6 @@ function pointSphere() {
     window.requestAnimationFrame(draw);
 };
 ```
-
-And then a simple example showing two different shader programs being run concurrently:
-
-![100000 Points on a unit sphere](./images/1000points.gif)
 
 This is all part of some larger research which will hopefully result in some super responsive interactive particles systems. More information can be found on [the project website here][cci-vis-env].
 
