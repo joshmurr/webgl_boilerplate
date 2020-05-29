@@ -8,6 +8,7 @@ export default class Geometry {
         this._uniformsNeedsUpdate = false;
         this._translate = [0.0, 0.0, 0.0];
         this._rotation = { speed : 0, axis : [0, 0, 0]};
+        this._oscillate = false;
 
         this._verts = [];
         this._indices = [];
@@ -31,7 +32,6 @@ export default class Geometry {
             for(const attrib in buffer.attributes){
                 if(buffer.attributes.hasOwnProperty(attrib)){
                     const attrib_desc = buffer.attributes[attrib];
-                    // debugger;
                     this.gl.enableVertexAttribArray(attrib_desc.location);
                     this.gl.vertexAttribPointer(
                         attrib_desc.location,
@@ -107,7 +107,7 @@ export default class Geometry {
                 const uniform_desc = this._uniforms[uniform];
                 // If a specific program is passed and does not match the program
                 // in the uniform, skip it.
-                if(uniform_desc.programName && _programName &&  _programName!==uniform_desc.programName) continue;
+                // if(uniform_desc.programName && _programName &&  _programName!==uniform_desc.programName) continue;
                 switch(uniform_desc.type){
                     case 'texture' : {
                         // If there is only one texture, all of this is implied
@@ -174,6 +174,10 @@ export default class Geometry {
         this._rotation.axis[2] = r[2];
     }
 
+    set oscillate(val){
+        if(typeof val === 'boolean') this._oscillate = val;
+    }
+
     get needsUpdate(){
         return this._uniformsNeedsUpdate;
     }
@@ -186,7 +190,7 @@ export default class Geometry {
         );
         mat4.rotate(this._uniforms.u_ModelMatrix.value,
             this._uniforms.u_ModelMatrix.value,
-            _time * this._rotation.speed,
+            (this._oscillate ? Math.sin(_time*0.001)*90 : _time) * this._rotation.speed,
             this._rotation.axis
         );
     }

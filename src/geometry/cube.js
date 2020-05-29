@@ -212,7 +212,7 @@ export default class Cube extends Geometry {
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this._verts), this.gl.STATIC_DRAW);
                 const texCoordBuffer = this.gl.createBuffer();
-                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, potexCoordffer);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, texCoordBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this._textureCoordinates), this.gl.STATIC_DRAW);
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
 

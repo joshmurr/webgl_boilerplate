@@ -1,16 +1,67 @@
 import GL_BP from './GL_BP';
-// import GameOfLife from './gameoflife/gameoflife.js';
 
-// window.addEventListener("load", golTexture2d());
+window.addEventListener("load", golTexture2d());
 // window.addEventListener("load", particles3D());
 // window.addEventListener("load", simpleParticles());
-window.addEventListener("load", pointSphere());
+// window.addEventListener("load", fourOhfour());
+// window.addEventListener("load", pointSphere());
+// window.addEventListener("load", pointCube());
 // window.addEventListener("load", icosahedron());
-//
+
+
+// -------------------------------------------------------------------------------
+function fourOhfour(){
+    /* 404 CUBE */
+    const textureVert = require('./glsl/textureVert.glsl');
+    const textureFrag = require('./glsl/textureFrag.glsl');
+
+    const GL = new GL_BP();
+    GL.init(512,512);
+
+    GL.initShaderProgram('texture', textureVert, textureFrag, null, 'TRIANGLES');
+
+    GL.initProgramUniforms('texture', [
+        'u_ProjectionMatrix',
+        'u_ViewMatrix',
+    ]);
+
+    const cube = GL.Cube(['texture'], '404');
+    cube.rotate = { s:-0.002, a:[0.2,0.8,0.5]};
+
+    GL.initGeometryUniforms('texture', [ 'u_ModelMatrix' ]);
+
+    const r = [255, 0, 0, 255];
+    const w = [255, 255, 255, 255];
+
+    GL.dataTexture('texture', {
+        name : 'u_Texture',
+        width : 10,
+        height : 5,
+        data : new Uint8Array([
+            ...w, ...w, ...w, ...r, ...w,...w, ...w, ...r, ...w, ...w,
+            ...r, ...r, ...r, ...r, ...r,...w, ...r, ...w, ...r, ...w,
+            ...w, ...r, ...w, ...r, ...w,...w, ...r, ...w, ...r, ...w,
+            ...w, ...w, ...r, ...r, ...w,...w, ...r, ...w, ...r, ...w,
+            ...w, ...w, ...w, ...r, ...w,...w, ...w, ...r, ...w, ...w,
+        ]),
+    });
+
+    GL.cameraPosition = [0, 0, 5];
+
+    function draw(now) {
+        GL.draw(now);
+        window.requestAnimationFrame(draw);
+    }
+    window.requestAnimationFrame(draw);
+}
+// -------------------------------------------------------------------------------
+
+// -------------------------------------------------------------------------------
 function golTexture2d(){
-    const quadVert = require('./gameoflife/glsl/quadVert.glsl');
-    const updateFrag = require('./gameoflife/glsl/golFrag.glsl');
-    const renderFrag = require('./gameoflife/glsl/copyFrag.glsl');
+    const updateVert = require('./glsl/gameoflife/updateVert.glsl');
+    const renderVert = require('./glsl/gameoflife/renderVert.glsl');
+    const updateFrag = require('./glsl/gameoflife/golFrag.glsl');
+    const renderFrag = require('./glsl/gameoflife/copyFrag.glsl');
 
     const GL = new GL_BP();
 
@@ -21,8 +72,8 @@ function golTexture2d(){
 
     GL.init(...GOL.viewsize);
 
-    GL.initShaderProgram('update', quadVert, updateFrag, null, 'TRIANGLES');
-    GL.initShaderProgram('render', quadVert, renderFrag, null, 'TRIANGLES');
+    GL.initShaderProgram('update', updateVert, updateFrag, null, 'TRIANGLES');
+    GL.initShaderProgram('render', renderVert, renderFrag, null, 'TRIANGLES');
 
     GL.setDrawParams('update', {
         viewport       : [0, 0, GOL.statesize[0], GOL.statesize[1]],
@@ -70,13 +121,13 @@ function golTexture2d(){
     });
 
 
-    GL.initProgramUniforms('render', [ 'u_Resolution' ]);
+    GL.initProgramUniforms('render', [ 'u_ViewMatrix', 'u_ProjectionMatrix' ]);
 
-    GL.addProgramUniform('render', {
-        name : 'u_Scale',
-        type : 'uniform2fv',
-        value : GOL.viewsize,
-    });
+    // GL.addProgramUniform('render', {
+        // name : 'u_Scale',
+        // type : 'uniform2fv',
+        // value : GOL.viewsize,
+    // });
     GL.addProgramUniform('update', {
         name : 'u_Scale',
         type : 'uniform2fv',
@@ -84,6 +135,11 @@ function golTexture2d(){
     });
 
     const GameOfLife = GL.Quad(['update', 'render']);
+    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
+
+    GameOfLife.translate = [0, 0, -1.5]; 
+    GameOfLife.rotate = {s:0.01, a:[-0.2,1,0.2]};
+    GameOfLife.oscillate = true;
 
     function draw(now) {
         GL.draw(now);
@@ -91,7 +147,9 @@ function golTexture2d(){
     }
     window.requestAnimationFrame(draw);
 }
+// -------------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------------
 function particles3D(){
     const updateVert = require('./glsl/particles3d/particle_update_vert.glsl');
     const updateFrag = require('./glsl/particles3d/passthru_frag.glsl');
@@ -178,7 +236,7 @@ function simpleParticles() {
     GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
     GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
 
-    GL.initProgramUniforms('update', [ 'u_TimeDelta' ]);
+    GL.initProgramUniforms('update', [ 'u_TimeDelta', 'u_Mouse' ]);
     GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
 
     GL.setDrawParams('render', {
@@ -212,7 +270,9 @@ function simpleParticles() {
     }
     window.requestAnimationFrame(draw);
 };
+// -------------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------------
 function icosahedron() {
     const facesVert = require('./glsl/facesVert.glsl');
     const facesFrag = require('./glsl/facesFrag.glsl');
@@ -241,13 +301,14 @@ function icosahedron() {
     }
     window.requestAnimationFrame(draw);
 };
+// -------------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------------
 function pointSphere() {
     const pointsVert = require('./glsl/pointsVert.glsl');
     const pointsFrag = require('./glsl/pointsFrag.glsl');
     const basicFrag = require('./glsl/basicFrag.glsl');
     const GL = new GL_BP();
-    // Create canvas of specified size and setup WebGL instance
     GL.init(512,512);
 
     GL.initShaderProgram('points', pointsVert, pointsFrag, null, 'POINTS');
@@ -280,3 +341,52 @@ function pointSphere() {
     }
     window.requestAnimationFrame(draw);
 };
+// -------------------------------------------------------------------------------
+
+// -------------------------------------------------------------------------------
+function pointCube() {
+    const pointsVert = require('./glsl/pointCube/pointsVert.glsl');
+    const pointsFrag = require('./glsl/pointCube/pointsFrag.glsl');
+    const GL = new GL_BP();
+    GL.init(512,512);
+
+    GL.initShaderProgram('points', pointsVert, pointsFrag, null, 'POINTS');
+
+    const points = GL.PointCloud(['points'], 1000);
+    points.rotate = {s:0.001, a:[0,1,0]};
+
+    GL.initProgramUniforms('points', [
+        'u_ProjectionMatrix',
+        'u_ViewMatrix',
+    ]);
+    GL.initGeometryUniforms('points', [ 'u_ModelMatrix' ]);
+
+    let d = [];
+    for(let i=0; i<8; i++){
+        for(let j=0; j<8; j++){
+            for(let k=0; k<8; k++){
+                d.push(
+                    Math.floor((i/8)* 255),
+                    Math.floor((j/8)* 255),
+                    Math.floor((k/8)* 255),
+                    0);
+            }
+        }
+    }
+
+    GL.dataTexture('points', {
+        name : 'u_Texture',
+        width : 8*8*8,
+        height : 1,
+        data : new Uint8Array(d),
+    });
+
+    GL.cameraPosition = [0, 0, 3];
+
+    function draw(now) {
+        GL.draw(now);
+        window.requestAnimationFrame(draw);
+    }
+    window.requestAnimationFrame(draw);
+};
+// -------------------------------------------------------------------------------

@@ -13,22 +13,37 @@ export default class PointCloud extends Geometry {
     }
 
     linkProgram(_program){
-        const attributes = {
+        this._buffers.push(this.gl.createBuffer());
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this._buffers[0]);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this._verts), this.gl.STATIC_DRAW);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+
+        const positionAttrib = {
             i_Position: {
-                buffer: this.gl.createBuffer(),
-                bufferData: new Float32Array(this._verts),
-                usage: this.gl.STATIC_DRAW,
                 location: this.gl.getAttribLocation(_program, "i_Position"),
                 num_components: 3,
                 type: this.gl.FLOAT,
-                normalize: false,
-                stride: 0,
-                offset: 0,
+                size: 4,
             },
         };
+        this._VAOs.push(this.gl.createVertexArray());
+        const VAO_desc = [
+            {
+                vao: this._VAOs[0],
+                buffers: [
+                    {
+                        buffer_object: this._buffers[0],
+                        stride: 0,
+                        attributes: positionAttrib
+                    },
+                ]
+            },
+        ];
 
-        this._VAO = this.gl.createVertexArray();
-        this.setupVAO(attributes);
-        this.linkUniforms(_program);
+        for(const VAO of VAO_desc){
+            this.setupVAO(VAO.buffers, VAO.vao);
+        }
     }
 }

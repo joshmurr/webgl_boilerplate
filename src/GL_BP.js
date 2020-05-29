@@ -3,7 +3,6 @@ import Icosahedron from './geometry/icosahedron.js';
 import RandomPointSphere from './geometry/randomPointSphere.js';
 import PointCloud from './geometry/pointCloud.js';
 import ParticleSystem from './geometry/particleSystem.js';
-// import GameOfLifeTexture2D from './geometry/gameoflifeTexture2d.js';
 import Cube from './geometry/cube.js';
 import Quad from './geometry/quad.js';
 
@@ -91,7 +90,7 @@ export default class GL_BP {
             uniformNeedsUpdate : false,
             globalUniforms : {},
             drawParams : {
-                clearColor : [0.9, 0.9, 0.9, 1.0],
+                clearColor : [0.95, 0.95, 0.95, 1.0],
                 clearDepth : [1.0],
                 clear      : ['COLOR_BUFFER_BIT', 'DEPTH_BUFFER_BIT'],
                 viewport   : [0, 0, this.gl.canvas.width, this.gl.canvas.height],
@@ -238,13 +237,6 @@ export default class GL_BP {
                         );
                         break;
                     }
-                    // case 'uniform2fv' : {
-                        // this.gl[uniform_desc.type](
-                            // uniform_desc.location,
-                            // uniform_desc.value,
-                        // );
-                        // break;
-                    // }
                     default : {
                         this.gl[uniform_desc.type](
                             uniform_desc.location,
@@ -257,14 +249,12 @@ export default class GL_BP {
     }
 
     updateProjectionMatrix(_program){
-        // this._projectionMat = mat4.create();
         mat4.perspective(
             this._programs[_program].globalUniforms.u_ProjectionMatrix.value,
             this._fieldOfView, this._aspect, this._zNear, this._zFar);
     }
 
     updateViewMatrix(_program){
-        // this._viewMat = mat4.create();
         mat4.lookAt(
             this._programs[_program].globaluniforms.u_viewmatrix.value,
             this._position, this._target, this._up);
@@ -550,8 +540,7 @@ export default class GL_BP {
     dataTexture(_programName, _options){
         // Default options, to be overwritten by _options passed in
         let options = {
-            name: null,
-            // uniformName: 'u_Texture',
+            name: 'u_Texture', // default
             level : 0,
             unit : 0,
             width : 1,
@@ -609,13 +598,11 @@ export default class GL_BP {
     }
 
     initMouse(){
-        this._canvas.addEventListener('mousemove', this.setMouse);
-    }
-
-    setMouse(e){
-        let x = 2.0 * (e.pageX - e.target.offsetLeft)/this._WIDTH - 1.0;
-        let y = -(2.0 * (e.pageY - e.target.offsetTop)/this._HEIGHT - 1.0);
-        return [x, y];
+        // Arrow functions have no 'this' binding
+        this._canvas.addEventListener('mousemove', (e) => {
+            this._mouse[0] = 2.0 * (e.clientX)/this._WIDTH - 1.0;
+            this._mouse[1] = -(2.0 * (e.clientY)/this._HEIGHT - 1.0);
+        });
     }
 
     Quad(_programs=null){
@@ -651,8 +638,15 @@ export default class GL_BP {
         return Points;
     }
 
-    PointCloud(numPoints, emptyData){
-        return new PointCloud(this.gl, numPoints, emptyData);
+    PointCloud(_programs, _numPoints){
+        const Points = new PointCloud(this.gl, _numPoints);
+        if(_programs){
+            for(const p of _programs){
+                this._programs[p].geometry.push(Points);
+                Points.linkProgram(this._programs[p].shader);
+            }
+        }
+        return Points;
     }
 
     Icosahedron(_program){

@@ -5,6 +5,7 @@
 precision mediump float;
 
 uniform float u_TimeDelta;
+// uniform vec2 u_Mouse;
 uniform sampler2D u_RgNoise;
 
 vec2 u_Gravity = vec2(0.0, -0.8);
@@ -39,6 +40,7 @@ void main(){
         float y = sin(theta);
 
         v_Position = u_Origin;
+        // v_Position = u_Mouse;
 
         v_Age = 0.0;
         v_Life = i_Life;

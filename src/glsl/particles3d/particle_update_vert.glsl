@@ -151,8 +151,11 @@ void main(){
         float y = sin(theta)*sin(phi);
         float z = cos(theta);
 
+        float posx = (rand.x-0.5)*0.1;
+        float posz = (rand.z-0.5)*0.8;
+
         // v_Position = u_Origin;
-        v_Position = vec3((rand.x-0.5)*0.1, -1.6, (rand.z-0.5)*0.8);
+        v_Position = vec3(posx, -1.6, posz);
         v_Age = 0.0;
         v_Life = i_Life;
 
@@ -163,9 +166,9 @@ void main(){
         v_Life = i_Life;
         // vec3 force = 0.5 * (2.0 * texture(u_ForceField, i_Position.xy).rgb - vec3(1.0));
         vec3 force = vec3(
-                snoise(i_Position.xyz),
-                snoise(i_Position.yzx),
-                snoise(i_Position.zxy)
+                snoise(i_Position.xyz+u_TotalTime*0.1),
+                snoise(i_Position.yzx+u_TotalTime*0.1),
+                snoise(i_Position.zxy+u_TotalTime*0.1)
                 );
         v_Velocity = i_Velocity + u_Gravity * u_TimeDelta + force * u_TimeDelta;
     }

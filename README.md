@@ -68,4 +68,12 @@ function pointSphere() {
 
 This is all part of some larger research which will hopefully result in some super responsive interactive particles systems. More information can be found on [the project website here][cci-vis-env].
 
+---
+
+TODO:
+
+- Move geometry uniforms into program object so that only the relevent unfiorms can be set in the draw call. One geometry can be used in multiple shader programs, but not all need the same uniforms necessarily.
+
 [cci-vis-env]: https://joshmurr.github.io/cci-vis-env/
+
+

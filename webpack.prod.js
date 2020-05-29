@@ -3,5 +3,5 @@ const common = require('./webpack.common.js');
 
 module.exports = merge(common, {
     mode: 'production',
-    entry: './src/simple.js',
+    entry: './src/GL_BP.js',
 });

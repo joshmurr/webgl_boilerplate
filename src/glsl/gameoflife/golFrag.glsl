@@ -4,7 +4,6 @@ precision mediump float;
 uniform sampler2D u_StateUpdate;
 uniform vec2 u_Scale;
 
-in vec2 v_TexCoord;
 out vec4 OUTCOLOR;
 
 int get(vec2 _offset){
