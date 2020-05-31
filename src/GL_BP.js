@@ -230,12 +230,21 @@ export default class GL_BP {
                 const uniform_desc = _uniforms[uniform];
                 switch(uniform_desc.type){
                     case 'uniformMatrix4fv' : {
+                        // MATRIX
                         this.gl[uniform_desc.type](
                             uniform_desc.location,
                             false,
                             uniform_desc.value,
                         );
                         break;
+                    }
+                    case 'uniform1i' : {
+                        // TEXTURE
+                        this.gl.uniform1i(uniform_desc.location, uniform_desc.unit);
+                        this.gl.activeTexture(this.gl.TEXTURE0 + uniform_desc.unit);
+                        this.gl.bindTexture(this.gl[uniform_desc.dimension], uniform_desc.value);
+                        break;
+                        // debugger;
                     }
                     default : {
                         this.gl[uniform_desc.type](
@@ -545,6 +554,7 @@ export default class GL_BP {
             unit : 0,
             width : 1,
             height : 1,
+            depth: null,
             data : new Uint8Array([0, 0, 255, 255]),
             border : 0,
             internalFormat : 'RGBA8',
@@ -556,36 +566,58 @@ export default class GL_BP {
 
         Object.assign(options, _options);
 
+        const TYPE = options.depth ? 'TEXTURE_3D' : 'TEXTURE_2D';
 
         const texture = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        this.gl.activeTexture(this.gl.TEXTURE0 + options.unit);
+        this.gl.bindTexture(this.gl[TYPE], texture);
 
-        this.gl.texImage2D(this.gl.TEXTURE_2D,
-            0, // Level
-            this.gl[options.internalFormat],
-            options.width,
-            options.height,
-            options.border,
-            this.gl[options.format],
-            this.gl[options.type],
-            options.data
-        );
+        if(TYPE === 'TEXTURE_2D'){
+            this.gl.texImage2D(
+                this.gl.TEXTURE_2D,
+                0, // Level
+                this.gl[options.internalFormat],
+                options.width,
+                options.height,
+                options.border,
+                this.gl[options.format],
+                this.gl[options.type],
+                options.data
+            );
+        } else {
+            this.gl.texImage3D(
+                this.gl.TEXTURE_3D,
+                0, // Level
+                this.gl[options.internalFormat],
+                options.width,
+                options.height,
+                options.depth,
+                options.border,
+                this.gl[options.format],
+                this.gl[options.type],
+                options.data
+            );
+        }
 
         // In case of width/height errors use this:
         // this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl[options.wrap]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl[options.wrap]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl[options.filter]);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
+        this.gl.texParameteri(this.gl[TYPE], this.gl.TEXTURE_BASE_LEVEL, 0);
+        this.gl.texParameteri(this.gl[TYPE], this.gl.TEXTURE_MAX_LEVEL, Math.log2(options.width));
+        this.gl.texParameteri(this.gl[TYPE], this.gl.TEXTURE_WRAP_S, this.gl[options.wrap]);
+        this.gl.texParameteri(this.gl[TYPE], this.gl.TEXTURE_WRAP_T, this.gl[options.wrap]);
+        this.gl.texParameteri(this.gl[TYPE], this.gl.TEXTURE_MIN_FILTER, this.gl[options.filter]);
+        this.gl.texParameteri(this.gl[TYPE], this.gl.TEXTURE_MAG_FILTER, this.gl[options.filter]);
+        // this.gl.generateMipmap(this.gl[TYPE]);
 
         this._programs[_programName].globalUniforms[options.name] = {
-            type : 'uniform1i',
+            type        : 'uniform1i',
             value       : texture,
             location    : this.gl.getUniformLocation(
                 this._programs[_programName].shader, // Not yet assigned
                 options.name
             ),
-            unit : options.unit
+            unit        : options.unit,
+            dimension   : TYPE,
         }
     }
 
