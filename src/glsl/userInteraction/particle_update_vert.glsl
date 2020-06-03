@@ -7,37 +7,26 @@ precision mediump sampler3D;
 
 uniform float u_TimeDelta;
 uniform float u_TotalTime;
+uniform vec2 u_Mouse;
+uniform int u_Click;
 uniform sampler2D u_InitialPosition;
-uniform sampler2D u_RgNoise;
-uniform sampler3D u_FlowField;
-// uniform vec2 u_Gravity;
-
-// PARTICLE SPECIFIC ----------
-// uniform vec2 u_Origin;
-// uniform float u_MinTheta;
-// uniform float u_MaxTheta;
-// uniform float u_MinSpeed;
-// uniform float u_MaxSpeed;
-// ----------------------------
+uniform mat4 u_ModelMatrix;
+uniform mat4 u_ViewMatrix;
+uniform mat4 u_ProjectionMatrix;
+uniform mat4 u_InverseModelMatrix;
 
 vec3 u_Gravity = vec3(0.0, 0.0, 0.0);
 vec3 u_Origin = vec3(0.0, 0.0, 0.0);
-// float u_MinTheta = PI/2.0 - 0.3;
-// float u_MaxTheta = PI/2.0 + 0.3;
 float u_MinTheta = -PI;
 float u_MaxTheta = PI;
 float u_MinSpeed = 0.01;
 float u_MaxSpeed = 0.02;
+vec3 acc = vec3(0.0);
 
-// uniform sampler2D u_ForceField;
-
-// PARTICLE SPECIFIC ----------
 in vec3 i_Position;
 in float i_Age;
 in float i_Life;
 in vec3 i_Velocity;
-// ----------------------------
-
 
 // Transform Feedback Varyings
 out vec3 v_Position;
@@ -160,43 +149,68 @@ vec3 piFlow(vec3 _p){
         );
 }
 
+vec3 repel(vec3 _r, vec3 _pos){
+    vec3 dir = _pos - _r;
+    float d = length(dir);
+    normalize(dir);
+    float force = 5.0/(100.0*d*d);
+    dir *= force;
+    return dir;
+}
+
+float raySphereIntersect(vec3 r0, vec3 rd, vec3 s0, float sr) {
+    // - r0: ray origin
+    // - rd: normalized ray direction
+    // - s0: sphere center
+    // - sr: sphere radius
+    // - Returns distance from r0 to first intersecion with sphere,
+    //   or -1.0 if no intersection.
+    float a = dot(rd, rd);
+    vec3 s0_r0 = r0 - s0;
+    float b = 2.0 * dot(rd, s0_r0);
+    float c = dot(s0_r0, s0_r0) - (sr * sr);
+    if (b*b - 4.0*a*c < 0.0) {
+        return -1.0;
+    }
+    return (-b - sqrt((b*b) - 4.0*a*c))/(2.0*a);
+    // return 1.0;
+}
+
+
+vec3 rotateY(vec3 _p){
+    float t = u_TimeDelta * (PI / 12.0);
+    mat3 rY = mat3(cos(t), 0, -sin(t), 0, 1, 0, sin(t), 0, cos(t));
+    return rY * _p;
+}
+
+vec3 rotateZ(vec3 _p){
+    float t = u_TimeDelta * (PI / 12.0);
+    mat3 rZ = mat3(cos(t), sin(t), 0, -sin(t), cos(t), 0, 0, 0, 1);
+    return rZ * _p;
+}
+
 void main(){
     if(i_Age >= i_Life) {
-        ivec2 noise_coord = ivec2(gl_VertexID % 512, gl_VertexID / 512);
-        vec3 rand = texelFetch(u_RgNoise, noise_coord, 0).rgb;
-        // vec3 rand = texelFetch(u_FlowField, ivec3(4), 0).rgb;
-        // vec3 rand = texelFetch(u_FlowField, ivec3(0), 0).rgb;
-        // float theta = u_MinTheta + rand.r*(u_MaxTheta - u_MinTheta);
-        float theta = u_MinTheta + rand.r*(u_MaxTheta - u_MinTheta);
-        float phi   = u_MinTheta + rand.b*(u_MaxTheta - u_MinTheta);
-
-        float x = sin(theta)*cos(phi);
-        float y = sin(theta)*sin(phi);
-        float z = cos(theta);
-
-        // float posx = (rand.x-0.5)*0.1;
-        // float posz = (rand.z-0.5)*0.8;
-
-        v_Position = 0.5 * (2.0 * texelFetch(u_InitialPosition, ivec2(gl_VertexID, 0), 0).rgb - vec3(1.0));
-        // v_Position = vec3(x, y, z)*random(i_Position.xy+u_TotalTime);
+        v_Position = 1.0 * (2.0 * texelFetch(u_InitialPosition, ivec2(gl_VertexID, 0), 0).rgb - vec3(1.0));
         v_Age = 0.0;
         v_Life = i_Life;
-
-        // v_Velocity = vec3(x, y, z) * (u_MinSpeed + rand.g * (u_MaxSpeed - u_MinSpeed));
         v_Velocity = vec3(0);
     } else {
-        v_Position = i_Position + i_Velocity * u_TimeDelta;
+        // if(v_Position.y <= -.1) acc += repel(vec3(v_Velocity.x, -v_Velocity.y, v_Velocity.z), v_Position);
+        if(u_Click > 0) {
+            // vec3 rO = vec4(inverse(u_ModelMatrix) * vec4(0, 0, 3.0, 1.0)).xyz;
+            vec4 clickPos = inverse(u_ProjectionMatrix) * inverse(u_ViewMatrix) * vec4(u_Mouse, -1.0, 1.0);
+            vec3 rO = normalize(clickPos.xyz);
+            vec3 rD = normalize(vec3(0.0, 0.0, -1.0));
+            float distToIntersect = raySphereIntersect(rO, rD, vec3(0), 0.5);
+            vec3 intersect = rO + rD*distToIntersect;
+            // vec4 impact = vec4(intersect, 1.0);
+            acc += repel(intersect,i_Position);
+        }
+        v_Position = rotateY(i_Position) + i_Velocity * u_TimeDelta;
         v_Age = i_Age + u_TimeDelta;
         v_Life = i_Life;
-        // vec3 force = vec3(
-                // snoise(i_Position.xyz+u_TotalTime*0.1),
-                // snoise(i_Position.yzx+u_TotalTime*0.1),
-                // snoise(i_Position.zxy+u_TotalTime*0.1)
-                // );
-        // vec3 force = 0.5 * (2.0 * texture(u_ForceField, i_Position.xy).rgb - vec3(1.0));
-        // vec3 force = 0.5 * (2.0 * texture(u_FlowField, 0.5 * (normalize(v_Position)+vec3(1))).rgb - vec3(1.0));
-        // vec3 force = texelFetch(u_FlowField, ivec3(1), 0).rgb;
-        // vec3 force = vec3(0.0, 0.0, 0.0);
-        v_Velocity = i_Velocity + u_Gravity * u_TimeDelta + piFlow(v_Position) * 0.02 * u_TimeDelta;
+        v_Velocity = i_Velocity + acc + u_Gravity * u_TimeDelta;
+        acc *= 0.0;
     }
 }

@@ -1,3 +1,162 @@
+import { vec3 } from 'gl-matrix';
+
+// -------------------------------------------------------------------------------
+export function userInteraction(_GL){
+    const GL = _GL;
+
+    const updateVert = require('./glsl/userInteraction/particle_update_vert.glsl');
+    const updateFrag = require('./glsl/userInteraction/passthru_frag.glsl');
+    const renderVert = require('./glsl/userInteraction/particle_render_vert.glsl');
+    const renderFrag = require('./glsl/userInteraction/particle_render_frag.glsl');
+
+    const transformFeedbackVaryings = [
+        "v_Position",
+        "v_Velocity",
+        "v_Age",
+        "v_Life",
+    ];
+
+    GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
+    GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
+
+    const SIZE = 32;
+    // 1D TEXTURE - Grid Spawning Positions
+    let d = [];
+    for(let i=0; i<SIZE; ++i){
+        let u = (i/SIZE) * (Math.PI);
+        for(let j=0; j<SIZE; ++j){
+            let v = (j/SIZE) * (Math.PI*2);
+            // let u = Math.random();
+            // let v = Math.random();
+            let rand = Math.random()-0.5;
+            let r = 127;
+            let x = Math.sin(u)*Math.cos(v);
+            let y = Math.sin(u)*Math.sin(v);
+            let z = Math.cos(u);
+            x *= rand; y *= rand; z *= rand;
+            x += 1; y += 1; z += 1;
+            x *= r; y *= r; z *= r;
+            d.push(
+                Math.floor(x),
+                Math.floor(y),
+                Math.floor(z)
+            );
+        }
+    }
+    GL.dataTexture('update', {
+        name           :'u_InitialPosition',
+        width          : SIZE*SIZE,
+        height         : 1,
+        internalFormat : 'RGB8',
+        format         : 'RGB',
+        unit           : 0,
+        data           : new Uint8Array(d),
+    });
+
+    GL.initProgramUniforms('update', [ 'u_ProjectionMatrix', 'u_ViewMatrix', 'u_TimeDelta', 'u_TotalTime', 'u_Mouse', 'u_Click' ]);
+    GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
+
+    GL.setDrawParams('render', {
+        clearColor : [0.0, 0.0, 0.0, 1.0],
+        enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
+        blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
+        depthFunc  : ['LEQUAL']
+    });
+
+    GL.cameraPosition = [0, 1, 1.5];
+
+    const opts = {
+        numParticles : SIZE*SIZE,
+        lifeRange    : [1.01, 10.1],
+        dimensions : 3,
+        birthRate : 0.99
+    };
+    const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
+    ParticleSystem.rotate = { s:0.0005, a:[0,1,0]};
+    GL.initGeometryUniforms('update', [ 'u_ModelMatrix', 'u_InverseModelMatrix' ]);
+    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
+
+    function draw(now) {
+        GL.draw(now);
+        window.requestAnimationFrame(draw);
+    }
+    window.requestAnimationFrame(draw);
+}
+
+// -------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------
+export function repulsionCube(_GL){
+    const GL = _GL;
+
+    const updateVert = require('./glsl/repulsionCube/particle_update_vert.glsl');
+    const updateFrag = require('./glsl/repulsionCube/passthru_frag.glsl');
+    const renderVert = require('./glsl/repulsionCube/particle_render_vert.glsl');
+    const renderFrag = require('./glsl/repulsionCube/particle_render_frag.glsl');
+
+    const transformFeedbackVaryings = [
+        "v_Position",
+        "v_Velocity",
+        "v_Age",
+        "v_Life",
+    ];
+
+    GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
+    GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
+
+    const SIZE = 16;
+    // 1D TEXTURE - Grid Spawning Positions
+    let d = [];
+    for(let i=0; i<SIZE; ++i){
+        for(let j=0; j<SIZE; ++j){
+            for(let k=0; k<SIZE; ++k){
+                d.push(
+                    Math.floor((i/SIZE)* 255),
+                    Math.floor((j/SIZE)* 255),
+                    Math.floor((k/SIZE)* 255),
+                );
+            }
+        }
+    }
+    GL.dataTexture('update', {
+        name           :'u_InitialPosition',
+        width          : SIZE*SIZE*SIZE,
+        height         : 1,
+        internalFormat : 'RGB8',
+        format         : 'RGB',
+        unit           : 0,
+        data           : new Uint8Array(d),
+    });
+
+    GL.initProgramUniforms('update', [ 'u_TimeDelta', 'u_TotalTime' ]);
+    GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
+
+    GL.setDrawParams('render', {
+        clearColor : [0.0, 0.0, 0.0, 1.0],
+        enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
+        blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
+        depthFunc  : ['LEQUAL']
+    });
+
+    GL.cameraPosition = [0, 2, 3.5];
+
+    const opts = {
+        numParticles : SIZE*SIZE*SIZE,
+        lifeRange    : [1.01, 10.1],
+        dimensions : 3,
+        birthRate : 5.00
+    };
+    const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
+    ParticleSystem.rotate = { s:0.0005, a:[0,1,0]};
+    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
+
+    function draw(now) {
+        GL.draw(now);
+        window.requestAnimationFrame(draw);
+    }
+    window.requestAnimationFrame(draw);
+}
+
+// -------------------------------------------------------------------------------
 
 // -------------------------------------------------------------------------------
 export function particles3Dtexture(_GL){
@@ -18,36 +177,80 @@ export function particles3Dtexture(_GL){
     GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
     GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
 
+    const SIZE = 16;
+    // 1D TEXTURE - RANDOM DATA
     let d = [];
+    for(let i=0; i<SIZE; ++i){
+        for(let j=0; j<SIZE; ++j){
+            for(let k=0; k<SIZE; ++k){
+                d.push(
+                    Math.floor((i/SIZE)* 255),
+                    Math.floor((j/SIZE)* 255),
+                    Math.floor((k/SIZE)* 255),
+                );
+            }
+        }
+    }
+    GL.dataTexture('update', {
+        name           :'u_InitialPosition',
+        width          : SIZE*SIZE*SIZE,
+        height         : 1,
+        internalFormat : 'RGB8',
+        format         : 'RGB',
+        unit           : 0,
+        data           : new Uint8Array(d),
+    });
+
+    // 2D TEXTURE - RANDOM DATA
+    d = [];
     for(let i=0; i<512*512; ++i){
         d.push(Math.random()*255);
         d.push(Math.random()*255);
         d.push(Math.random()*255);
     }
-
     GL.dataTexture('update', {
         name           :'u_RgNoise',
         width          : 512,
         height         : 512,
         internalFormat : 'RGB8',
         format         : 'RGB',
-        unit : 0,
+        filter         : 'LINEAR',
+        unit           : 1,
         data           : new Uint8Array(d),
     });
 
-    let d3 = [];
-    for(let i=0; i<8*8*8; ++i){
-        d3.push(255, 0, 0);
+    // 3D TEXTURE - FLOWFIELD
+    d = [];
+    // float x = sin(theta)*cos(phi);
+    // float y = sin(theta)*sin(phi);
+    // float z = cos(theta);
+    let origin  = vec3.fromValues(128, 128, 128);
+    for(let i=0; i<SIZE; ++i){
+        let u = i/SIZE;// * 255;
+        for(let j=0; j<SIZE; ++j){
+            let v = j/SIZE;// * 255;
+            for(let k=0; k<SIZE; ++k){
+                let w = k/SIZE;// * 255;
+                // d3.push((Math.sin(u)+1)*128, (Math.cos(v)+1)*128, (Math.sin(w)+1)*128);
+                // d.push(0, 255, 0);
+                let current = vec3.fromValues(u, v, w);
+                let dir = vec3.create();
+                vec3.subtract(dir, current, origin);
+                // vec3.normalize(dir, dir);
+                d.push(...dir);
+                // d.push(u*w, u*w, u*v);
+            }
+        }
     }
     GL.dataTexture('update', {
         name           :'u_FlowField',
-        width          : 8,
-        height         : 8,
-        depth          : 8,
+        width          : SIZE,
+        height         : SIZE,
+        depth          : SIZE,
         internalFormat : 'RGB8',
         format         : 'RGB',
-        unit : 1,
-        data           : new Uint8Array(d3),
+        unit           : 2,
+        data           : new Uint8Array(d),
     });
 
     GL.initProgramUniforms('update', [ 'u_TimeDelta', 'u_TotalTime' ]);
@@ -62,11 +265,11 @@ export function particles3Dtexture(_GL){
 
     GL.cameraPosition = [0, 2, 3.5];
 
-    const opts = { 
-        numParticles : 1000,
+    const opts = {
+        numParticles : SIZE*SIZE*SIZE,
         lifeRange    : [1.01, 10.1],
-        dimensions : 3, 
-        birthRate : 0.99
+        dimensions : 3,
+        birthRate : 0.5
     };
     const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
     ParticleSystem.rotate = { s:0.0005, a:[0,1,0]};
@@ -192,9 +395,9 @@ export function golTexture2d(_GL){
     GL.initProgramUniforms('render', [ 'u_ViewMatrix', 'u_ProjectionMatrix' ]);
 
     // GL.addProgramUniform('render', {
-        // name : 'u_Scale',
-        // type : 'uniform2fv',
-        // value : GOL.viewsize,
+    // name : 'u_Scale',
+    // type : 'uniform2fv',
+    // value : GOL.viewsize,
     // });
     GL.addProgramUniform('update', {
         name : 'u_Scale',
@@ -205,7 +408,7 @@ export function golTexture2d(_GL){
     const GameOfLife = GL.Quad(['update', 'render']);
     GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
 
-    GameOfLife.translate = [0, 0, -1.5]; 
+    GameOfLife.translate = [0, 0, -1.5];
     GameOfLife.rotate = {s:0.01, a:[-0.2,1,0.2]};
     GameOfLife.oscillate = true;
 
@@ -264,10 +467,10 @@ export function particles3D(_GL){
 
     GL.cameraPosition = [0, 2, 3.5];
 
-    const opts = { 
+    const opts = {
         numParticles : 10000,
         lifeRange    : [1.01, 10.1],
-        dimensions : 3, 
+        dimensions : 3,
         birthRate : 0.99
     };
     const ParticleSystem = GL.ParticleSystem('update', 'render', opts);

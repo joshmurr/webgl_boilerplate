@@ -92,6 +92,14 @@ export default class Geometry {
                     };
                     break;
                 }
+                case 'u_InverseModelMatrix' : {
+                    this._uniforms['u_InverseModelMatrix'] = {
+                        type        : 'uniformMatrix4fv',
+                        value       : mat4.create(), //this._projectionMat,
+                        location    : this.gl.getUniformLocation(_shaderProgram, 'u_InverseModelMatrix')
+                    };
+                    break;
+                }
             }
         }
         // if(_textures){
@@ -183,17 +191,25 @@ export default class Geometry {
     }
 
     updateModelMatrix(_time){
-        mat4.identity(this._uniforms.u_ModelMatrix.value);
-        mat4.translate(this._uniforms.u_ModelMatrix.value,
-            this._uniforms.u_ModelMatrix.value,
+        mat4.identity(this._uniforms['u_ModelMatrix'].value);
+        mat4.translate(this._uniforms['u_ModelMatrix'].value,
+            this._uniforms['u_ModelMatrix'].value,
             this._translate
         );
-        mat4.rotate(this._uniforms.u_ModelMatrix.value,
-            this._uniforms.u_ModelMatrix.value,
+        mat4.rotate(this._uniforms['u_ModelMatrix'].value,
+            this._uniforms['u_ModelMatrix'].value,
             (this._oscillate ? Math.sin(_time*0.001)*90 : _time) * this._rotation.speed,
             this._rotation.axis
         );
     }
+
+    updateInverseModelMatrix(){
+        mat4.invert(
+            this._uniforms['u_InverseModelMatrix'].value,
+            this._uniforms['u_ModelMatrix'].value
+        );
+    }
+
     normalizeVerts(){
         for(let i=0; i<this._verts.length; i+=3) {
             const norm = this.normalize(this._verts[i], this._verts[i+1], this._verts[i+2]);

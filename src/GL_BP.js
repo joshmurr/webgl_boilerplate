@@ -19,6 +19,7 @@ export default class GL_BP {
         this._oldTimestamp = 0.0;
         this._deltaTime = 0.0;
         this._mouse = [0, 0];
+        this._click = 0;
 
         // Projection
         this._fieldOfView = 45 * Math.PI / 180;
@@ -141,7 +142,17 @@ export default class GL_BP {
                         value       : this._mouse,
                         location    : this.gl.getUniformLocation(shaderProgram, 'u_Mouse')
                     };
-                    this.initMouse();
+                    this.initMouseMove();
+                    break;
+                }
+                case 'u_Click' : {
+                    this._programs[_program].uniformNeedsUpdate = true;
+                    globalUniforms['u_Click'] = {
+                        type : 'uniform1i',
+                        value       : this._click,
+                        location    : this.gl.getUniformLocation(shaderProgram, 'u_Click')
+                    };
+                    this.initMouseClick();
                     break;
                 }
                 case 'u_ProjectionMatrix' : {
@@ -211,6 +222,10 @@ export default class GL_BP {
                         _uniforms[uniform].value = this._mouse;
                         break;
                     }
+                    case 'u_Click' : {
+                        _uniforms[uniform].value = this._click;
+                        break;
+                    }
                     case 'u_ProjectionMatrix' : {
                         mat4.perspective(_uniforms[uniform].value, this._fieldOfView, this._aspect, this._zNear, this._zFar);
                         break;
@@ -239,12 +254,13 @@ export default class GL_BP {
                         break;
                     }
                     case 'uniform1i' : {
-                        // TEXTURE
-                        this.gl.uniform1i(uniform_desc.location, uniform_desc.unit);
-                        this.gl.activeTexture(this.gl.TEXTURE0 + uniform_desc.unit);
-                        this.gl.bindTexture(this.gl[uniform_desc.dimension], uniform_desc.value);
-                        break;
-                        // debugger;
+                        if(uniform_desc.isTexture){
+                            // TEXTURE
+                            this.gl.uniform1i(uniform_desc.location, uniform_desc.unit);
+                            this.gl.activeTexture(this.gl.TEXTURE0 + uniform_desc.unit);
+                            this.gl.bindTexture(this.gl[uniform_desc.dimension], uniform_desc.value);
+                            break;
+                        }
                     }
                     default : {
                         this.gl[uniform_desc.type](
@@ -466,6 +482,7 @@ export default class GL_BP {
                     /* UPDATE AND SET GEOM UNIFORMS */
                     if(geom.needsUpdate) {
                         geom.updateModelMatrix(this._time);
+                        geom.updateInverseModelMatrix();
                     }
                     geom.setUniforms();
 
@@ -534,15 +551,14 @@ export default class GL_BP {
         });
 
         this._programs[_programName].globalUniforms[_name] = {
-            // type        : 'texture',
             type : 'uniform1i',
             value       : texture,
-            // location    : this.gl.getUniformLocation(this._programs[options.program].shader, 'u_Texture'),
             location    : this.gl.getUniformLocation(
                 this._programs[_programName].shader, // Not yet assigned
                 _name
             ),
-            unit : 0
+            unit : 0,
+            isTexture   : true,
         }
     }
 
@@ -618,6 +634,7 @@ export default class GL_BP {
             ),
             unit        : options.unit,
             dimension   : TYPE,
+            isTexture   : true,
         }
     }
 
@@ -629,11 +646,20 @@ export default class GL_BP {
         this._programs[p1].globalUniforms[t1].value = tmp;
     }
 
-    initMouse(){
+    initMouseMove(){
         // Arrow functions have no 'this' binding
         this._canvas.addEventListener('mousemove', (e) => {
             this._mouse[0] = 2.0 * (e.clientX)/this._WIDTH - 1.0;
             this._mouse[1] = -(2.0 * (e.clientY)/this._HEIGHT - 1.0);
+        });
+    }
+
+    initMouseClick(){
+        this._canvas.addEventListener('mousedown', (e) => {
+            this._click = 1; 
+        });
+        this._canvas.addEventListener('mouseup', (e) => {
+            this._click = 0; 
         });
     }
 

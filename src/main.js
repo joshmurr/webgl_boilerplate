@@ -5,7 +5,8 @@ window.addEventListener("load", function(){
     const GL = new GL_BP();
     GL.init(512,512);
 
-    Demo.particles3Dtexture(GL)
+    Demo.userInteraction(GL)
+    // Demo.particles3Dtexture(GL)
     // Demo.golTexture2d(GL)
     // Demo.particles3D(GL)
     // Demo.simpleParticles(GL)
