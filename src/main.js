@@ -3,7 +3,7 @@ import * as Demo from './demos'
 
 window.addEventListener("load", function(){
     const GL = new GL_BP();
-    GL.init(512,512);
+    GL.init(1024,800);
 
     Demo.userInteraction(GL)
     // Demo.particles3Dtexture(GL)

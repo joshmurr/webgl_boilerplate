@@ -10,6 +10,7 @@ uniform float u_TotalTime;
 uniform vec2 u_Mouse;
 uniform int u_Click;
 uniform sampler2D u_InitialPosition;
+uniform sampler2D u_NoiseRGB;
 uniform mat4 u_ModelMatrix;
 uniform mat4 u_ViewMatrix;
 uniform mat4 u_ProjectionMatrix;
@@ -153,7 +154,7 @@ vec3 repel(vec3 _r, vec3 _pos){
     vec3 dir = _pos - _r;
     float d = length(dir);
     normalize(dir);
-    float force = 5.0/(100.0*d*d);
+    float force = 1.0/(100.0*d*d);
     dir *= force;
     return dir;
 }
@@ -173,7 +174,6 @@ float raySphereIntersect(vec3 r0, vec3 rd, vec3 s0, float sr) {
         return -1.0;
     }
     return (-b - sqrt((b*b) - 4.0*a*c))/(2.0*a);
-    // return 1.0;
 }
 
 
@@ -196,21 +196,23 @@ void main(){
         v_Life = i_Life;
         v_Velocity = vec3(0);
     } else {
-        // if(v_Position.y <= -.1) acc += repel(vec3(v_Velocity.x, -v_Velocity.y, v_Velocity.z), v_Position);
         if(u_Click > 0) {
-            // vec3 rO = vec4(inverse(u_ModelMatrix) * vec4(0, 0, 3.0, 1.0)).xyz;
             vec4 clickPos = inverse(u_ProjectionMatrix) * inverse(u_ViewMatrix) * vec4(u_Mouse, -1.0, 1.0);
-            vec3 rO = normalize(clickPos.xyz);
+            vec3 rO = clickPos.xyz;
             vec3 rD = normalize(vec3(0.0, 0.0, -1.0));
             float distToIntersect = raySphereIntersect(rO, rD, vec3(0), 0.5);
             vec3 intersect = rO + rD*distToIntersect;
-            // vec4 impact = vec4(intersect, 1.0);
             acc += repel(intersect,i_Position);
         }
         v_Position = rotateY(i_Position) + i_Velocity * u_TimeDelta;
         v_Age = i_Age + u_TimeDelta;
         v_Life = i_Life;
-        v_Velocity = i_Velocity + acc + u_Gravity * u_TimeDelta;
+        vec3 force = vec3(
+                snoise(v_Position.xyz+u_TotalTime*0.1),
+                snoise(v_Position.yzx+u_TotalTime*0.1),
+                snoise(v_Position.zxy+u_TotalTime*0.1)
+                );
+        v_Velocity = i_Velocity + acc + u_Gravity + force*0.05 * u_TimeDelta;
         acc *= 0.0;
     }
 }

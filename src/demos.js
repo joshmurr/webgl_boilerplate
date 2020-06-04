@@ -26,8 +26,6 @@ export function userInteraction(_GL){
         let u = (i/SIZE) * (Math.PI);
         for(let j=0; j<SIZE; ++j){
             let v = (j/SIZE) * (Math.PI*2);
-            // let u = Math.random();
-            // let v = Math.random();
             let rand = Math.random()-0.5;
             let r = 127;
             let x = Math.sin(u)*Math.cos(v);
@@ -53,6 +51,24 @@ export function userInteraction(_GL){
         data           : new Uint8Array(d),
     });
 
+    d = [];
+    for(let i=0; i<GL.width; ++i){
+        for(let j=0; j<GL.height; ++j){
+            d.push(Math.floor(Math.random()*255));
+            d.push(Math.floor(Math.random()*255));
+            d.push(Math.floor(Math.random()*255));
+        }
+    }
+    GL.dataTexture('update', {
+        name           :'u_NoiseRGB',
+        width          : GL.width,
+        height         : GL.height,
+        internalFormat : 'RGB8',
+        format         : 'RGB',
+        unit           : 1,
+        data           : new Uint8Array(d),
+    });
+
     GL.initProgramUniforms('update', [ 'u_ProjectionMatrix', 'u_ViewMatrix', 'u_TimeDelta', 'u_TotalTime', 'u_Mouse', 'u_Click' ]);
     GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
 
@@ -75,6 +91,8 @@ export function userInteraction(_GL){
     ParticleSystem.rotate = { s:0.0005, a:[0,1,0]};
     GL.initGeometryUniforms('update', [ 'u_ModelMatrix', 'u_InverseModelMatrix' ]);
     GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
+
+    console.log(GL.programs);
 
     function draw(now) {
         GL.draw(now);

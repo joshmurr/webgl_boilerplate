@@ -17,6 +17,8 @@ export default class Geometry {
         this._buffers = [];
         this._VAOs = [];
 
+        this._modelMatrix = mat4.create();
+
         this._uniforms = {};
         this._textures = {};
     }
@@ -60,88 +62,10 @@ export default class Geometry {
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null);
     }
 
-    addUniform(_name, _initialValue, _type, _glType, _progName, _program){
-        this._uniforms[_name] = {
-            value       : _initialValue,
-            uniformType : _type,
-            type        : _glType,
-            programName : _progName,
-            location    : this.gl.getUniformLocation(_program, _name)
-        }
-    }
-
     updateUniform(_uniform, _val){
         if(this._uniforms.hasOwnProperty(_uniform)){
             const uniform_desc = this._uniforms[_uniform];
             uniform_desc.value = _val;
-        }
-    }
-
-    linkUniforms(_arg1, _aarg2){
-        console.error("'linkUniforms()' is deprecated, use 'initUniforms()'");
-    }
-
-    initUniforms(_shaderProgram, _uniforms){
-        for(const uniform of _uniforms){
-            switch(uniform){
-                case 'u_ModelMatrix' : {
-                    this._uniforms['u_ModelMatrix'] = {
-                        type        : 'uniformMatrix4fv',
-                        value       : mat4.create(), //this._projectionMat,
-                        location    : this.gl.getUniformLocation(_shaderProgram, 'u_ModelMatrix')
-                    };
-                    break;
-                }
-                case 'u_InverseModelMatrix' : {
-                    this._uniforms['u_InverseModelMatrix'] = {
-                        type        : 'uniformMatrix4fv',
-                        value       : mat4.create(), //this._projectionMat,
-                        location    : this.gl.getUniformLocation(_shaderProgram, 'u_InverseModelMatrix')
-                    };
-                    break;
-                }
-            }
-        }
-        // if(_textures){
-        // for(const tex of _textures){
-        // Object.assign(this._uniforms, tex);
-        // }
-        // }
-    }
-
-    setUniforms(){
-        for(const uniform in this._uniforms){
-            if(this._uniforms.hasOwnProperty(uniform)){
-                const uniform_desc = this._uniforms[uniform];
-                // If a specific program is passed and does not match the program
-                // in the uniform, skip it.
-                // if(uniform_desc.programName && _programName &&  _programName!==uniform_desc.programName) continue;
-                switch(uniform_desc.type){
-                    case 'texture' : {
-                        // If there is only one texture, all of this is implied
-                        // and therefore technically unnecessary
-                        this.gl.activeTexture(this.gl.TEXTURE0 + uniform_desc.unit);
-                        // this.gl.bindTexture(this.gl.TEXTURE_2D, uniform_desc.value);
-                        this.gl.uniform1i(uniform_desc.location, 0);
-                        break;
-                    }
-                    case 'uniform2fv' : {
-                        this.gl[uniform_desc.type](
-                            uniform_desc.location,
-                            uniform_desc.value,
-                        );
-                        break;
-                    }
-                    default : {
-                        // Matrix
-                        this.gl[uniform_desc.type](
-                            uniform_desc.location,
-                            false, // transpose
-                            uniform_desc.value,
-                        );
-                    }
-                }
-            }
         }
     }
 
@@ -191,16 +115,20 @@ export default class Geometry {
     }
 
     updateModelMatrix(_time){
-        mat4.identity(this._uniforms['u_ModelMatrix'].value);
-        mat4.translate(this._uniforms['u_ModelMatrix'].value,
-            this._uniforms['u_ModelMatrix'].value,
+        mat4.identity(this._modelMatrix);
+        mat4.translate(
+            this._modelMatrix,
+            this._modelMatrix,
             this._translate
         );
-        mat4.rotate(this._uniforms['u_ModelMatrix'].value,
-            this._uniforms['u_ModelMatrix'].value,
+        mat4.rotate(
+            this._modelMatrix,
+            this._modelMatrix,
             (this._oscillate ? Math.sin(_time*0.001)*90 : _time) * this._rotation.speed,
             this._rotation.axis
         );
+
+        return this._modelMatrix;
     }
 
     updateInverseModelMatrix(){

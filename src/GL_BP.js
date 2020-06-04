@@ -90,6 +90,7 @@ export default class GL_BP {
             geometry : [],
             uniformNeedsUpdate : false,
             globalUniforms : {},
+            geometryUniforms: {},
             drawParams : {
                 clearColor : [0.95, 0.95, 0.95, 1.0],
                 clearDepth : [1.0],
@@ -188,10 +189,25 @@ export default class GL_BP {
     initGeometryUniforms(_program, _uniforms){
         const program = this.getProgram(_program);
         const shaderProgram = program.shader;
+        let geometryUniforms = program.geometryUniforms;
 
-        for(const geom of program.geometry){
-            geom.initUniforms(shaderProgram, _uniforms);
+        for(const uniform of _uniforms){
+            switch(uniform){
+                case 'u_ModelMatrix' : {
+                    geometryUniforms['u_ModelMatrix'] = {
+                        type        : 'uniformMatrix4fv',
+                        value       : mat4.create(),
+                        location    : this.gl.getUniformLocation(shaderProgram, 'u_ModelMatrix')
+                    };
+                    break;
+                }
+            }
         }
+
+                // OLD
+        // for(const geom of program.geometry){
+            // geom.initUniforms(shaderProgram, _uniforms);
+        // }
     }
 
     updateAllGlobalUniforms(){
@@ -239,7 +255,21 @@ export default class GL_BP {
         }
     }
 
-    setGlobalUniforms(_uniforms){
+    updateGeometryUniforms(_geometry, _uniforms){
+        for(const uniform in _uniforms){
+            if(_uniforms.hasOwnProperty(uniform)){
+                switch(uniform) {
+                    case 'u_ModelMatrix' : {
+                        _uniforms[uniform].value = _geometry.updateModelMatrix(this._time);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+
+    setUniforms(_uniforms){
         for(const uniform in _uniforms){
             if(_uniforms.hasOwnProperty(uniform)){
                 const uniform_desc = _uniforms[uniform];
@@ -466,7 +496,7 @@ export default class GL_BP {
                     if(program_desc.uniformNeedsUpdate) {
                         this.updateGlobalUniforms(program_desc.globalUniforms);
                     }
-                    this.setGlobalUniforms(program_desc.globalUniforms);
+                    this.setUniforms(program_desc.globalUniforms);
                 }
 
                 for(const geom of program_desc.geometry){
@@ -481,10 +511,14 @@ export default class GL_BP {
 
                     /* UPDATE AND SET GEOM UNIFORMS */
                     if(geom.needsUpdate) {
-                        geom.updateModelMatrix(this._time);
-                        geom.updateInverseModelMatrix();
+                        this.updateGeometryUniforms(geom, program_desc.geometryUniforms);
+                        // geom.updateModelMatrix(this._time);
+                        // geom.updateInverseModelMatrix();
                     }
-                    geom.setUniforms();
+
+                    this.setUniforms(program_desc.geometryUniforms);
+
+                    // geom.setUniforms();
 
                     // const numUniforms = this.gl.getProgramParameter(program_desc.shader, this.gl.ACTIVE_UNIFORMS);
                     // for (let i = 0; i < numUniforms; ++i) {
@@ -663,6 +697,13 @@ export default class GL_BP {
         });
     }
 
+    get width(){
+        return this._WIDTH;
+    }
+    get height(){
+        return this._HEIGHT;
+    }
+
     Quad(_programs=null){
         const quad = new Quad(this.gl);
         if(_programs){
@@ -716,6 +757,7 @@ export default class GL_BP {
 
     ParticleSystem(_updateProgram, _renderProgram, _options=null){
         const PS = new ParticleSystem(this.gl, _options);
+
         this._programs[_updateProgram].geometry.push(PS);
         this._programs[_renderProgram].geometry.push(PS);
         PS.linkProgram(
