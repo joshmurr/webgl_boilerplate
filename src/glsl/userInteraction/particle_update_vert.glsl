@@ -197,12 +197,26 @@ void main(){
         v_Velocity = vec3(0);
     } else {
         if(u_Click > 0) {
-            vec4 clickPos = inverse(u_ProjectionMatrix) * inverse(u_ViewMatrix) * vec4(u_Mouse, -1.0, 1.0);
-            vec3 rO = clickPos.xyz;
-            vec3 rD = normalize(vec3(0.0, 0.0, -1.0));
+            vec4 rayStart = vec4(u_Mouse, -1.0, 1.0);
+            vec4 rayEnd   = vec4(u_Mouse,  0.0, 1.0);
+
+            mat4 M = inverse(u_ProjectionMatrix * u_ViewMatrix);
+            vec4 rayStart_world = M * rayStart;
+            rayStart_world /= rayStart_world.w;
+            vec4 rayEnd_world = M * rayEnd;
+            rayEnd_world  /=rayEnd_world.w;
+
+            vec3 rayDir_world = vec4(rayEnd_world - rayStart_world).xyz;
+            rayDir_world = normalize(rayDir_world);
+
+            // vec4 clickPos = inverse(u_ProjectionMatrix) * inverse(u_ViewMatrix) * vec4(u_Mouse, -1.0, 1.0);
+            // vec3 rO = clickPos.xyz;
+            // vec3 rD = normalize(vec3(0.0, 0.0, -1.0));
+            vec3 rO = rayStart_world.xyz;
+            vec3 rD = rayDir_world;
             float distToIntersect = raySphereIntersect(rO, rD, vec3(0), 0.5);
             vec3 intersect = rO + rD*distToIntersect;
-            acc += repel(intersect,i_Position);
+            acc += repel(i_Position,intersect);
         }
         v_Position = rotateY(i_Position) + i_Velocity * u_TimeDelta;
         v_Age = i_Age + u_TimeDelta;

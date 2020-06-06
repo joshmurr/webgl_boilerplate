@@ -203,11 +203,15 @@ export default class GL_BP {
                 }
             }
         }
+    }
 
-                // OLD
-        // for(const geom of program.geometry){
-            // geom.initUniforms(shaderProgram, _uniforms);
-        // }
+    addGeometryUniform(_program, _options){
+        const program = this.getProgram(_program);
+        program.geometryUniforms[_options.name] = {
+            type : _options.type,
+            value : _options.value,
+            location : this.gl.getUniformLocation(program.shader, _options.name)
+        }
     }
 
     updateAllGlobalUniforms(){
