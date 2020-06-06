@@ -91,6 +91,7 @@ export default class GL_BP {
             uniformNeedsUpdate : false,
             globalUniforms : {},
             geometryUniforms: {},
+            uniformBuffers : {},
             drawParams : {
                 clearColor : [0.95, 0.95, 0.95, 1.0],
                 clearDepth : [1.0],
@@ -177,6 +178,54 @@ export default class GL_BP {
         this.updateGlobalUniforms(globalUniforms);
     }
 
+    addUniformBuffer(_programName, _options){
+        const program = this.getProgram(_programName);
+        const shaderProgram = program.shader;
+
+        let options = {
+            name     : 'u_BufferObject',
+            binding  : 0,
+            drawType : 'STATIC_DRAW',
+            data     : null,
+        }
+
+        Object.assign(options, _options);
+
+        const index = this.gl.getUniformBlockIndex(shaderProgram, options.name);
+        this.gl.uniformBlockBinding(shaderProgram, index, options.binding);
+
+        const buffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, buffer);
+        this.gl.bufferData(this.gl.UNIFORM_BUFFER, options.data, this.gl[options.drawType]);
+        this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, null);
+        this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, options.binding, buffer);
+
+        // console.log(
+            // this.gl.getActiveUniformBlockParameter(shaderProgram, index, this.gl.UNIFORM_BLOCK_BINDING),
+            // this.gl.getActiveUniformBlockParameter(shaderProgram, index, this.gl.UNIFORM_BLOCK_DATA_SIZE),
+            // this.gl.getActiveUniformBlockParameter(shaderProgram, index, this.gl.UNIFORM_BLOCK_ACTIVE_UNIFORMS),
+            // this.gl.getActiveUniformBlockParameter(shaderProgram, index, this.gl.UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES),
+        // );
+
+        program.uniformBuffers[options.name] = {
+            buffer  : buffer,
+            value   : options.data,
+            binding : options.binding,
+        };
+    }
+
+    updateUniformBuffer(_program, _uniform, _value, _offset){
+        const uniformBuffer = this._programs[_program].uniformBuffers[_uniform];
+        uniformBuffer.value.set(_value, _offset);
+        console.log(uniformBuffer.value);
+
+        this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, uniformBuffer.buffer);
+        this.gl.bufferSubData(this.gl.UNIFORM_BUFFER, 0, uniformBuffer.value, 0, null);
+        this.gl.bindBuffer(this.gl.UNIFORM_BUFFER, null);
+        this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, uniformBuffer.binding, uniformBuffer.buffer);
+    }
+
+
     addProgramUniform(_program, _options){
         const program = this.getProgram(_program);
         program.globalUniforms[_options.name] = {
@@ -212,6 +261,14 @@ export default class GL_BP {
             value : _options.value,
             location : this.gl.getUniformLocation(program.shader, _options.name)
         }
+    }
+
+    updateProgramUniform(_program, _uniform, _value){
+        this._programs[_program].globalUniforms[_uniform].value = _value;
+    }
+
+    updateGeometryUniform(_program, _uniform, _value){
+        this._programs[_program].geometryUniforms[_uniform].value = _value;
     }
 
     updateAllGlobalUniforms(){
@@ -367,6 +424,10 @@ export default class GL_BP {
             this.gl.TEXTURE_2D, _texture, 0);
     }
 
+    get canvas(){
+        return this._canvas;
+    }
+
     get textures(){
         return this._textures;
     }
@@ -384,12 +445,24 @@ export default class GL_BP {
         this.updateAllGlobalUniforms();
     }
 
+    get cameraPosition(){
+        return [...this._position];
+    }
+
     set cameraTarget(loc){
         this._target = vec3.fromValues(...loc);
     }
 
     set FOV(val){
         this._fieldOfView = val * Math.PI/180;
+    }
+
+    // Can't pass an argument to a regular get ___(){}
+    getViewMatrix(_programName){
+        return this._programs[_programName].globalUniforms['u_ViewMatrix'].value;
+    }
+    getProjectionMatrix(_programName){
+        return this._programs[_programName].globalUniforms['u_ProjectionMatrix'].value;
     }
 
     bindMainViewport(){
@@ -518,12 +591,11 @@ export default class GL_BP {
                     /* UPDATE AND SET GEOM UNIFORMS */
                     if(geom.needsUpdate) {
                         this.updateGeometryUniforms(geom, program_desc.geometryUniforms);
-                        // geom.updateModelMatrix(this._time);
-                        // geom.updateInverseModelMatrix();
                     }
 
                     this.setUniforms(program_desc.geometryUniforms);
 
+                    // console.log(this.gl.getActiveUniformBlockParameter(program_desc.shader, 0, this.gl.UNIFORM_BLOCK_BINDING));
                     // geom.setUniforms();
 
                     // const numUniforms = this.gl.getProgramParameter(program_desc.shader, this.gl.ACTIVE_UNIFORMS);
