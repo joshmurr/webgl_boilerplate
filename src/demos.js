@@ -398,7 +398,7 @@ export function golTexture2d(_GL){
         width : GOL.statesize[0],
         height : GOL.statesize[1],
         wrap : 'REPEAT',
-        data           : d8
+        data           : d8,
     });
 
     GL.dataTexture('render', {
@@ -406,7 +406,7 @@ export function golTexture2d(_GL){
         width : GOL.statesize[0],
         height : GOL.statesize[1],
         wrap : 'REPEAT',
-        data           : d8
+        data           : d8,
     });
 
 
@@ -429,6 +429,8 @@ export function golTexture2d(_GL){
     GameOfLife.translate = [0, 0, -1.5];
     GameOfLife.rotate = {s:0.01, a:[-0.2,1,0.2]};
     GameOfLife.oscillate = true;
+
+    console.log(GL.programs);
 
     function draw(now) {
         GL.draw(now);
