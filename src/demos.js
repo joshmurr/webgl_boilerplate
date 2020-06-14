@@ -237,55 +237,20 @@ export function particles3Dtexture(_GL){
         data           : new Uint8Array(d),
     });
 
-    // 3D TEXTURE - FLOWFIELD
-    d = [];
-    // float x = sin(theta)*cos(phi);
-    // float y = sin(theta)*sin(phi);
-    // float z = cos(theta);
-    let origin  = vec3.fromValues(128, 128, 128);
-    for(let i=0; i<SIZE; ++i){
-        let u = i/SIZE;// * 255;
-        for(let j=0; j<SIZE; ++j){
-            let v = j/SIZE;// * 255;
-            for(let k=0; k<SIZE; ++k){
-                let w = k/SIZE;// * 255;
-                // d3.push((Math.sin(u)+1)*128, (Math.cos(v)+1)*128, (Math.sin(w)+1)*128);
-                // d.push(0, 255, 0);
-                let current = vec3.fromValues(u, v, w);
-                let dir = vec3.create();
-                vec3.subtract(dir, current, origin);
-                // vec3.normalize(dir, dir);
-                d.push(...dir);
-                // d.push(u*w, u*w, u*v);
-            }
-        }
-    }
-    GL.dataTexture('update', {
-        name           :'u_FlowField',
-        width          : SIZE,
-        height         : SIZE,
-        depth          : SIZE,
-        internalFormat : 'RGB8',
-        format         : 'RGB',
-        unit           : 2,
-        data           : new Uint8Array(d),
-    });
-
     GL.initProgramUniforms('update', [ 'u_TimeDelta', 'u_TotalTime' ]);
     GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
 
     GL.setDrawParams('render', {
         clearColor : [0.0, 0.0, 0.0, 1.0],
-        enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
+        enable     : ['BLEND'],
         blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
-        depthFunc  : ['LEQUAL']
     });
 
-    GL.cameraPosition = [0, 2, 3.5];
+    GL.cameraPosition = [0, 1.5, 2.8];
 
     const opts = {
         numParticles : SIZE*SIZE*SIZE,
-        lifeRange    : [1.01, 10.1],
+        lifeRange    : [1, 10],
         dimensions : 3,
         birthRate : 0.5
     };
@@ -480,18 +445,17 @@ export function particles3D(_GL){
 
     GL.setDrawParams('render', {
         clearColor : [0.0, 0.0, 0.0, 1.0],
-        enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
+        enable     : ['BLEND'], // if enable is changed, it will override defaults
         blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
-        depthFunc  : ['LEQUAL']
     });
 
     GL.cameraPosition = [0, 2, 3.5];
 
     const opts = {
-        numParticles : 10000,
-        lifeRange    : [1.01, 10.1],
+        numParticles : 1000,
+        lifeRange    : [1.0, 5.0],
         dimensions : 3,
-        birthRate : 0.99
+        birthRate : 1
     };
     const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
     ParticleSystem.rotate = { s:0.0005, a:[0,1,0]};
@@ -521,16 +485,15 @@ export function simpleParticles(_GL) {
         "v_Life",
     ];
 
-
     GL.initShaderProgram('update', updateVert, updateFrag, transformFeedbackVaryings, null);
     GL.initShaderProgram('render', renderVert, renderFrag, null, 'POINTS');
 
-    GL.initProgramUniforms('update', [ 'u_TimeDelta', 'u_Mouse' ]);
+    GL.initProgramUniforms('update', [ 'u_TimeDelta' ]);
     GL.initProgramUniforms('render', [ 'u_ProjectionMatrix', 'u_ViewMatrix' ]);
 
     GL.setDrawParams('render', {
         clearColor : [0.1, 0.1, 0.3, 1.0],
-        enable     : ['BLEND', 'CULL_FACE', 'DEPTH_TEST'], // if enable is changed, it will override defaults
+        enable     : ['BLEND'],
         blendFunc  : ['SRC_ALPHA', 'ONE_MINUS_SRC_ALPHA'],
     });
 
@@ -551,7 +514,6 @@ export function simpleParticles(_GL) {
 
     const opts = { numParticles : 200, birthRate:0.1 };
     const ParticleSystem = GL.ParticleSystem('update', 'render', opts);
-    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
 
     function draw(now) {
         GL.draw(now);

@@ -12,12 +12,14 @@ in vec3 i_Velocity;
 
 out float v_Age;
 out float v_Life;
+out vec3 v_Velocity;
 
 void main(){
     v_Age = i_Age;
     v_Life = i_Life;
-    float ageFactor = 1.0 - i_Age/i_Life;
+    v_Velocity = i_Velocity;
+    float ageFactor = 1.0 + (1.0 - i_Age/i_Life);
 
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_ModelMatrix * vec4(i_Position, 1.0);
-    gl_PointSize = gl_Position.z * ageFactor * ageFactor;
+    gl_PointSize = 1.0/gl_Position.z * 8.0 * ageFactor;
 }

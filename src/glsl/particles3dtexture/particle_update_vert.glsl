@@ -9,21 +9,9 @@ uniform float u_TimeDelta;
 uniform float u_TotalTime;
 uniform sampler2D u_InitialPosition;
 uniform sampler2D u_RgNoise;
-uniform sampler3D u_FlowField;
-// uniform vec2 u_Gravity;
-
-// PARTICLE SPECIFIC ----------
-// uniform vec2 u_Origin;
-// uniform float u_MinTheta;
-// uniform float u_MaxTheta;
-// uniform float u_MinSpeed;
-// uniform float u_MaxSpeed;
-// ----------------------------
 
 vec3 u_Gravity = vec3(0.0, 0.0, 0.0);
 vec3 u_Origin = vec3(0.0, 0.0, 0.0);
-// float u_MinTheta = PI/2.0 - 0.3;
-// float u_MaxTheta = PI/2.0 + 0.3;
 float u_MinTheta = -PI;
 float u_MaxTheta = PI;
 float u_MinSpeed = 0.01;
@@ -164,9 +152,6 @@ void main(){
     if(i_Age >= i_Life) {
         ivec2 noise_coord = ivec2(gl_VertexID % 512, gl_VertexID / 512);
         vec3 rand = texelFetch(u_RgNoise, noise_coord, 0).rgb;
-        // vec3 rand = texelFetch(u_FlowField, ivec3(4), 0).rgb;
-        // vec3 rand = texelFetch(u_FlowField, ivec3(0), 0).rgb;
-        // float theta = u_MinTheta + rand.r*(u_MaxTheta - u_MinTheta);
         float theta = u_MinTheta + rand.r*(u_MaxTheta - u_MinTheta);
         float phi   = u_MinTheta + rand.b*(u_MaxTheta - u_MinTheta);
 
@@ -174,29 +159,14 @@ void main(){
         float y = sin(theta)*sin(phi);
         float z = cos(theta);
 
-        // float posx = (rand.x-0.5)*0.1;
-        // float posz = (rand.z-0.5)*0.8;
-
         v_Position = 0.5 * (2.0 * texelFetch(u_InitialPosition, ivec2(gl_VertexID, 0), 0).rgb - vec3(1.0));
-        // v_Position = vec3(x, y, z)*random(i_Position.xy+u_TotalTime);
         v_Age = 0.0;
         v_Life = i_Life;
-
-        // v_Velocity = vec3(x, y, z) * (u_MinSpeed + rand.g * (u_MaxSpeed - u_MinSpeed));
         v_Velocity = vec3(0);
     } else {
         v_Position = i_Position + i_Velocity * u_TimeDelta;
         v_Age = i_Age + u_TimeDelta;
         v_Life = i_Life;
-        // vec3 force = vec3(
-                // snoise(i_Position.xyz+u_TotalTime*0.1),
-                // snoise(i_Position.yzx+u_TotalTime*0.1),
-                // snoise(i_Position.zxy+u_TotalTime*0.1)
-                // );
-        // vec3 force = 0.5 * (2.0 * texture(u_ForceField, i_Position.xy).rgb - vec3(1.0));
-        // vec3 force = 0.5 * (2.0 * texture(u_FlowField, 0.5 * (normalize(v_Position)+vec3(1))).rgb - vec3(1.0));
-        // vec3 force = texelFetch(u_FlowField, ivec3(1), 0).rgb;
-        // vec3 force = vec3(0.0, 0.0, 0.0);
         v_Velocity = i_Velocity + u_Gravity * u_TimeDelta + piFlow(v_Position) * 0.02 * u_TimeDelta;
     }
 }

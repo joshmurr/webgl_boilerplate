@@ -16,24 +16,19 @@ float u_MinSpeed = 0.5;
 float u_MaxSpeed = 1.3;
 
 in vec2 i_Position;
+in vec2 i_Velocity;
 in float i_Age;
 in float i_Life;
-in vec2 i_Velocity;
 
 out vec2 v_Position;
+out vec2 v_Velocity;
 out float v_Age;
 out float v_Life;
-out vec2 v_Velocity;
-
-float random (vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233)))* 43758.5453123);
-}
-
 
 void main(){
     if(i_Age >= i_Life) {
         ivec2 noise_coord = ivec2(gl_VertexID % 512, gl_VertexID / 512);
-        vec3 rand = texelFetch(u_RgNoise, noise_coord, 0).rgb;
+        vec2 rand = texelFetch(u_RgNoise, noise_coord, 0).rg;
         float theta = u_MinTheta + rand.r*(u_MaxTheta - u_MinTheta);
 
         float x = cos(theta);
