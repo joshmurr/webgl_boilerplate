@@ -6,6 +6,7 @@ import PointCloud from './geometry/pointCloud.js';
 import ParticleSystem from './geometry/particleSystem.js';
 import Cube from './geometry/cube.js';
 import Quad from './geometry/quad.js';
+import XYZ_Cross from './geometry/xyz_cross.js';
 
 export default class GL_BP {
     constructor(){
@@ -510,6 +511,22 @@ export default class GL_BP {
         }
     }
 
+    poke(_programName, _textureName) {
+        console.log(`Poking at ${this._mouse}`);
+        const tex = this._programs[_programName].globalUniforms[_textureName].value;
+        this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
+        const v = 255;
+        this.gl.texSubImage2D(
+            this.gl.TEXTURE_2D,
+            0,
+            this._mouse[0], this._mouse[1],
+            1, 1,
+            this.gl.RGBA,
+            this.gl.UNSIGNED_BYTE,
+            new Uint8Array([v,v,v,255])
+        );
+    }
+
     draw(now){
         // TIME ---------------------------------
         if (this._oldTimestamp != 0) {
@@ -682,7 +699,6 @@ export default class GL_BP {
 
         // Asynchronously load an image
         var image = new Image();
-        console.log(_url);
         image.src = _url;
         image.addEventListener('load', function() {
             // Now that the image has loaded make copy it to the texture.
@@ -794,8 +810,14 @@ export default class GL_BP {
         this._programs[p1].globalUniforms[t1].value = tmp;
     }
 
-    initMouseMove(){
-        // Arrow functions have no 'this' binding
+    initPokeOnMouseMove(_programName, _textureName){
+        this.initMouseMove();
+        this._canvas.addEventListener('mousemove', (e) => {
+            this.poke(_programName, _textureName);
+        });
+    }
+
+    initMouseMove(_func){
         this._canvas.addEventListener('mousemove', (e) => {
             this._mouse[0] = 2.0 * (e.clientX)/this._WIDTH - 1.0;
             this._mouse[1] = -(2.0 * (e.clientY)/this._HEIGHT - 1.0);
@@ -870,6 +892,17 @@ export default class GL_BP {
             }
         }
         return cube;
+    }
+
+    XYZ_Cross(_programs, _type){
+        const xyz_cross = new XYZ_Cross(this.gl, _type);
+        if(_programs){
+            for(const p of _programs){
+                this._programs[p].geometry.push(xyz_cross);
+                xyz_cross.linkProgram(this._programs[p].shader);
+            }
+        }
+        return xyz_cross;
     }
 
     RandomPointSphere(_programs, _numPoints){

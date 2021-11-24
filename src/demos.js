@@ -1,5 +1,94 @@
 import { vec3 } from 'gl-matrix';
 
+// DROPLETS ----------------------------------------------------------------------
+export function droplets(_GL){
+    const GL = _GL;
+
+    const updateVert = require('./glsl/droplets/updateVert.glsl');
+    const renderVert = require('./glsl/droplets/renderVert.glsl');
+    const updateFrag = require('./glsl/droplets/dropletsFrag.glsl');
+    const renderFrag = require('./glsl/droplets/copyFrag.glsl');
+
+    const background = {
+        viewsize : [512, 512],
+        statesize: [512/4, 512/4],
+    };
+
+    GL.initShaderProgram('update', updateVert, updateFrag, null, 'TRIANGLES');
+    GL.initShaderProgram('render', renderVert, renderFrag, null, 'TRIANGLES');
+
+    GL.setDrawParams('update', {
+        viewport       : [0, 0, background.statesize[0], background.statesize[1]],
+    });
+
+    GL.setFramebufferRoutine('update', {
+        bindFramebuffer : 'step',
+        framebufferTexture2D : ['update', 'u_StateUpdate'],
+        bindTexture : ['render', 'u_StateRender'],
+    });
+
+    GL.setFramebufferRoutine('render', {
+        pre     : {
+            func : 'swapTextures',
+            args : [['update','u_StateUpdate'], ['render','u_StateRender']],
+        },
+        bindFramebuffer : null,
+        bindTexture : ['render', 'u_StateRender'],
+    });
+
+    GL.framebuffer('step');
+
+    let d = [];
+    for(let i=0, size = background.statesize[0]*background.statesize[1]; i<size; i++){
+        const state = Math.random() < 0.5 ? 255 : 0
+        d.push(state, state, state, 0.0);
+    }
+
+    let d8 = new Uint8Array(d);
+
+    GL.dataTexture('update', {
+        name : 'u_StateUpdate',
+        width : background.statesize[0],
+        height : background.statesize[1],
+        wrap : 'REPEAT',
+        data : d8,
+    });
+
+    GL.dataTexture('render', {
+        name : 'u_StateRender',
+        width : background.statesize[0],
+        height : background.statesize[1],
+        wrap : 'REPEAT',
+        data : d8,
+    });
+
+
+    GL.initProgramUniforms('render', [ 'u_ViewMatrix', 'u_ProjectionMatrix' ]);
+
+    // GL.addProgramUniform('render', {
+    // name : 'u_Scale',
+    // type : 'uniform2fv',
+    // value : GOL.viewsize,
+    // });
+    GL.addProgramUniform('update', {
+        name : 'u_Scale',
+        type : 'uniform2fv',
+        value : background.statesize,
+    });
+
+    const Droplets = GL.Quad(['update', 'render']);
+    GL.initGeometryUniforms('render', [ 'u_ModelMatrix' ]);
+
+    Droplets.translate = [0, 0, -1.5];
+
+    function draw(now) {
+        GL.draw(now);
+        window.requestAnimationFrame(draw);
+    }
+    window.requestAnimationFrame(draw);
+}
+// -------------------------------------------------------------------------------
+
 // -------------------------------------------------------------------------------
 export function userInteraction(_GL){
     const GL = _GL;
@@ -554,6 +643,38 @@ export function icosahedron(_GL) {
 };
 // -------------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------------
+export function xyz_cross(_GL) {
+    const GL = _GL;
+    const pointsVert = require('./glsl/pointsVert.glsl');
+    const basicFrag = require('./glsl/basicFrag.glsl');
+
+    GL.initShaderProgram('lines', pointsVert, basicFrag, null, 'LINES');
+    GL.setDrawParams('lines', {
+        clearColor: [0.8, 0.8, 0.9, 1.0],
+    });
+
+    const xyz = GL.XYZ_Cross(['lines'], 'DEBUG');
+    xyz.rotate = {s:0.001, a:[1,1,1]};
+
+    GL.initProgramUniforms('lines', [
+        'u_ProjectionMatrix',
+        'u_ViewMatrix',
+    ]);
+
+    GL.initGeometryUniforms('lines', [ 'u_ModelMatrix' ]);
+    GL.cameraPosition = [0, 0, 3];
+
+    console.log(GL.programs);
+
+    function draw(now) {
+        GL.draw(now);
+        window.requestAnimationFrame(draw);
+    }
+    window.requestAnimationFrame(draw);
+}
+// -------------------------------------------------------------------------------
+    
 // -------------------------------------------------------------------------------
 export function pointSphere(_GL) {
     const GL = _GL;

@@ -5,15 +5,17 @@ window.addEventListener("load", function(){
     const GL = new GL_BP();
     GL.init(512,512,true);
 
+     //Demo.droplets(GL)
     // Demo.userInteraction(GL)
-    Demo.particles3Dtexture(GL)
+    //Demo.particles3Dtexture(GL)
     // Demo.golTexture2d(GL)
     // Demo.particles3D(GL)
-    // Demo.simpleParticles(GL)
+     //Demo.simpleParticles(GL)
     // Demo.fourOhfour(GL)
-    // Demo.pointSphere(GL)
-    // Demo.pointCube(GL)
-    // Demo.icosahedron(GL)
+     //Demo.pointSphere(GL)
+     //Demo.pointCube(GL)
+     //Demo.icosahedron(GL)
+     Demo.xyz_cross(GL)
 });
 
 
